@@ -1,0 +1,454 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum CustomerType {
+  KORPORASI
+  PERORANGAN
+  LEGAL_ARRANGEMENT
+}
+
+enum CustomerStatus {
+  DRAFT
+  COMPLETE
+}
+
+// Dipakai di: IndividualDetail, BeneficialOwner, PowerOfAttorney,
+// LegalArrangementDetail, LegalArrangementParty (semua Section "Jenis Identitas": KTP/Paspor/SIM)
+enum JenisIdentitas {
+  KTP
+  PASPOR
+  SIM
+}
+
+// Section 2.A11
+enum JenisKelamin {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+// Section 2.A12
+enum StatusPernikahan {
+  BELUM_MENIKAH
+  MENIKAH
+  LAINNYA
+}
+
+// Section 2.B1
+enum SumberPendapatan {
+  PEKERJAAN
+  PROFESI
+  KEPEMILIKAN_USAHA
+  LAINNYA
+}
+
+// Section 2.B4
+enum PendapatanRange {
+  SD_12_JUTA
+  DI_ATAS_12_JUTA_SD_120_JUTA
+  DI_ATAS_120_JUTA_SD_1_2_MILIAR
+  DI_ATAS_1_2_MILIAR
+}
+
+// Section 1.D1
+enum HubunganHukumPengurus {
+  DIREKTUR_UTAMA
+  DIREKTUR
+  PEMEGANG_SAHAM
+  KOMISARIS_UTAMA
+  KOMISARIS
+  LAINNYA
+}
+
+// Section 4.P3
+enum PepAsalNegara {
+  LOKAL
+  ASING
+}
+
+// Section 4.P6
+enum PepJabatan {
+  EKSEKUTIF
+  YUDIKATIF
+  LEGISLATIF
+  NEGARA_ATAU_YURISDIKSI_ASING
+  ORGANISASI_INTERNASIONAL
+}
+
+// Section 4.P7
+enum PepHubungan {
+  KLIEN_SENDIRI
+  ANGGOTA_KELUARGA_DERAJAT_KEDUA
+  PIHAK_TERKAIT_ATAU_CLOSE_ASSOCIATE
+}
+
+// Section 6
+enum RiskCategory {
+  RENDAH
+  SEDANG
+  TINGGI
+}
+
+// Section 7.A.H2 (BEDA dari JenisIdentitas biasa: ada KITAS, tanpa "Paspor" urutan sama tapi opsi berbeda)
+enum JenisIdentitasEdd {
+  KTP
+  SIM
+  PASPOR
+  KITAS
+}
+
+// Section 7.A.H6
+enum JenisHighRiskCustomer {
+  PEP
+  PIHAK_TERKAIT_PEP
+  TRANSAKSI_NEGARA_HIGH_RISK
+  BERDASAR_PENILAIAN_RISIKO
+}
+
+// Section 7.A.H8
+enum TujuanTransaksiEdd {
+  DIGUNAKAN_SENDIRI
+  LAIN_LAIN
+}
+
+// Section 7.A.H9
+enum SumberKekayaanEdd {
+  GAJI_UPAH
+  LAIN_LAIN
+}
+
+// Section 7.A.H11
+enum PenghasilanBulananEdd {
+  RANGE_3_25_JUTA
+  RANGE_25_50_JUTA
+  RANGE_50_100_JUTA
+  DI_ATAS_100_JUTA
+}
+
+// ============================================================
+// Customer (inti)
+// ============================================================
+
+model Customer {
+  id        String         @id @default(cuid())
+  type      CustomerType
+  status    CustomerStatus @default(DRAFT)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  corporateDetail         CorporateDetail?
+  individualDetail        IndividualDetail?
+  legalArrangementDetail  LegalArrangementDetail?
+  beneficialOwners        BeneficialOwner[]
+  powerOfAttorney         PowerOfAttorney?
+  legalArrangementParties LegalArrangementParty[]
+  notaryService           NotaryService?
+  riskAssessment          RiskAssessment?
+  highRiskAdditionalInfo  HighRiskAdditionalInfo?
+}
+
+// ============================================================
+// 1. CDD Korporasi (Section 1 A & B)
+// ============================================================
+
+model CorporateDetail {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // -- A. Informasi Dasar Pengguna Jasa --
+  namaKorporasi       String // A1, wajib
+  bentukKorporasi     String? // A2
+  noSkPengesahan      String? // A3
+  tanggalSkPengesahan DateTime? // A3a
+  noIjinUsaha         String? // A4
+  tanggalIjinUsaha    DateTime? // A4a
+  npwp                String? // A5
+  alamatSesuaiAkta    String? // A6
+  alamatLokasiUsaha   String? // A7
+  nomorTelepon        String? // A8
+  nomorFaksimili      String? // A9, opsional
+  bidangUsaha         String? // A10 == B2 (satu field, lihat Known Gaps #3)
+  noAktaPendirian     String? // A11
+
+  // -- B. Informasi Kekayaan Korporasi --
+  sumberDana         String? // B1
+  pendapatanRataRata String? // B3
+  tujuanTransaksi    String? // B4
+}
+
+// ============================================================
+// 2. CDD Perorangan (Section 2 A & B)
+// ============================================================
+
+model IndividualDetail {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // -- A. Informasi Dasar Pengguna Jasa --
+  namaLengkap             String // A1, wajib
+  namaAlias               String? // A2, opsional
+  jenisIdentitas          JenisIdentitas // A3
+  noIdentitas             String? // A3a
+  npwp                    String? // A4
+  tempatLahir             String? // A5
+  tanggalLahir            DateTime? // A5a
+  kewarganegaraan         String? // A6
+  alamatTempatTinggal     String? // A7
+  alamatDomisili          String? // A8
+  alamatNegaraAsal        String? // A9, tampilkan hanya jika WNA
+  nomorTeleponRumah       String? // A10, opsional
+  nomorHp                 String? // A10a
+  jenisKelamin            JenisKelamin // A11
+  statusPernikahan        StatusPernikahan // A12
+  statusPernikahanLainnya String? // A12, isi jika statusPernikahan = LAINNYA
+
+  // -- B. Informasi Pekerjaan dan Sumber Pendapatan --
+  sumberPendapatan        SumberPendapatan? // B1
+  sumberPendapatanLainnya String? // B1, isi jika sumberPendapatan = LAINNYA
+  bidangUsaha             String? // B2
+  namaKantor              String? // B3
+  alamatKantor            String? // B3a
+  nomorTeleponKantor      String? // B3b
+  jabatan                 String? // B3c
+  pendapatanRataRata      PendapatanRange? // B4
+  tujuanTransaksi         String? // B5
+}
+
+// ============================================================
+// 3. CDD Perikatan Lainnya / Legal Arrangement (Section 3 A & B)
+// ============================================================
+
+model LegalArrangementDetail {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // -- A. Informasi Dasar Pengguna Jasa --
+  nama                String // A1
+  jenisIdentitas      JenisIdentitas? // A2
+  noIdentitas         String? // A2a
+  noSkPengesahan      String? // A3, isi jika Korporasi
+  tanggalSkPengesahan DateTime? // A3a
+  noIjinUsaha         String? // A4, isi jika Korporasi
+  tanggalIjinUsaha    DateTime? // A4a
+  npwp                String? // A5
+  alamat              String? // A6
+  nomorTelepon        String? // A7
+  nomorFaksimili      String? // A8, opsional
+  bidangUsaha         String? // A9 == B2, isi jika Korporasi (satu field, lihat Known Gaps #3)
+  noAktaPendirian     String? // A10, isi jika Korporasi
+
+  // -- B. Informasi Kekayaan --
+  sumberDana         String? // B1
+  pendapatanRataRata String? // B3
+  tujuanTransaksi    String? // B4
+}
+
+// ============================================================
+// Informasi Pemilik Manfaat (Beneficial Owner)
+// Section 1.C / 2.C / 3.C — model sama dipakai 3 tipe Customer
+// ============================================================
+
+model BeneficialOwner {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  namaLengkap                String // C1, wajib jika BO diisi
+  namaAlias                  String? // C2, opsional
+  jenisIdentitas             JenisIdentitas? // C3
+  noIdentitas                String? // C3a
+  tempatLahir                String? // C4
+  tanggalLahir               DateTime? // C4a
+  kewarganegaraan            String? // C5
+  alamatTempatTinggal        String? // C6
+  alamatNegaraAsal           String? // C7, tampilkan hanya jika WNA
+  npwp                       String? // C8, opsional
+  // C9: Korporasi/Perorangan = teks bebas "hubungan dgn korporasi";
+  // Legal Arrangement = quick-select peran (Pemilik Manfaat/Penerima Manfaat/
+  // Pengelola Harta Kekayaan/Penjamin/Lainnya) yang mengisi field teks yang sama.
+  hubunganDenganPenggunaJasa String? // C9
+}
+
+// ============================================================
+// 4. Informasi Kuasa Korporasi (Section 1.D) — khusus KORPORASI
+// ============================================================
+
+model PowerOfAttorney {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  hubunganHukum              HubunganHukumPengurus // D1 (tidak ada anotasi "+text" di reference-data.md, walau ada opsi Lainnya)
+  noSuratKuasa               String? // D2
+  tanggalSuratKuasa          DateTime? // D2a
+  penandatanganSuratKuasa    String? // D3
+  jabatanPenandatangan       String? // D3a
+  namaLengkapPenggunaJasa    String? // D4
+  namaAlias                  String? // D5, opsional
+  jenisIdentitasPenggunaJasa JenisIdentitas? // D6
+  noIdentitasPenggunaJasa    String? // D6a
+  tempatLahir                String? // D7
+  tanggalLahir               DateTime? // D7a
+  kewarganegaraan            String? // D8
+  alamatTempatTinggal        String? // D9
+}
+
+// ============================================================
+// Informasi Pihak dalam Legal Arrangement (Section 3.D) — khusus LEGAL_ARRANGEMENT
+// ============================================================
+
+model LegalArrangementParty {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  namaLengkap               String // D1
+  namaAlias                 String? // D2, opsional
+  jenisIdentitas            JenisIdentitas? // D3
+  noIdentitas               String? // D3a
+  tempatLahir               String? // D4
+  tanggalLahir              DateTime? // D4a
+  kewarganegaraan           String? // D5
+  alamatTempatTinggal       String? // D6
+  hubunganHukumPenggunaJasa String? // D7
+  noPerjanjian              String? // D8
+  tanggalPerjanjian         DateTime? // D8a
+  penandatangananPerjanjian String? // D9
+}
+
+// ============================================================
+// Informasi Jasa yang Diberikan (Section 1.E / 2.D / 3.E — identik, semua tipe)
+// ============================================================
+
+model NotaryService {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  namaNotaris       String? // E1
+  jasaYangDiberikan String? // E2
+}
+
+// ============================================================
+// 4/5/6. Risk Assessment — PEP + Skoring
+// ============================================================
+
+model RiskAssessment {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  // -- Section 4: Analisa PEP --
+  isPep             Boolean? // P1 (null = belum dijawab; bukan default "Tidak")
+  namaLengkapPep    String? // P2, isi jika isPep = true
+  pepAsalNegara     PepAsalNegara? // P3
+  wargaNegaraPep    String? // P4
+  adaBeritaNegatif  Boolean? // P5 (null = belum dijawab)
+  jabatanPep        PepJabatan? // P6
+  hubunganDenganPep PepHubungan? // P7
+
+  // -- Section 5/6: Skoring (FK ke 5 tabel referensi) --
+  userProfileScoreId       String?
+  userProfileScore         RefUserProfileScore?       @relation(fields: [userProfileScoreId], references: [id])
+  businessSectorScoreId    String?
+  businessSectorScore      RefBusinessSectorScore?    @relation(fields: [businessSectorScoreId], references: [id])
+  regionScoreId            String?
+  regionScore              RefRegionScore?            @relation(fields: [regionScoreId], references: [id])
+  countryScoreId           String?
+  countryScore             RefCountryScore?           @relation(fields: [countryScoreId], references: [id])
+  notaryServiceTypeScoreId String?
+  notaryServiceTypeScore   RefNotaryServiceTypeScore? @relation(fields: [notaryServiceTypeScoreId], references: [id])
+
+  totalScore   Int? // nullable — belum final selama Tabel B kosong
+  riskCategory RiskCategory? // nullable, computed dari totalScore
+}
+
+// ============================================================
+// 7.A Informasi Tambahan — Berisiko Tinggi (EDD Perorangan)
+// ============================================================
+
+model HighRiskAdditionalInfo {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  namaLengkap                 String? // H1
+  jenisIdentitas              JenisIdentitasEdd? // H2
+  nomorIdentitas              String? // H3
+  tempatLahir                 String? // H4 (tipe dok: "text + date" — dipecah 2 kolom, konsisten dgn pola field lain)
+  tanggalLahir                DateTime? // H4
+  alamatSesuaiIdentitas       String? // H5
+  jenisHighRiskCustomer       JenisHighRiskCustomer? // H6
+  metodePembayaran            String? // H7
+  tujuanTransaksi             TujuanTransaksiEdd? // H8
+  tujuanTransaksiLainnya      String? // H8, isi jika tujuanTransaksi = LAIN_LAIN
+  sumberKekayaan              SumberKekayaanEdd? // H9
+  sumberKekayaanLainnya       String? // H9, isi jika sumberKekayaan = LAIN_LAIN
+  namaPerusahaanTempatBekerja String? // H10
+  jumlahPenghasilanPerBulan   PenghasilanBulananEdd? // H11
+}
+
+// ============================================================
+// Tabel Referensi Skor (Section 5) — lookup, seed di Step 3
+// ============================================================
+
+model RefUserProfileScore {
+  id           String  @id @default(cuid())
+  categoryName String
+  score        Int
+  isActive     Boolean @default(true)
+
+  riskAssessments RiskAssessment[]
+}
+
+// BELUM ADA DATA RESMI — kosong sampai Tabel B (reference-data.md bagian 5 & 9) tersedia.
+model RefBusinessSectorScore {
+  id           String  @id @default(cuid())
+  categoryName String
+  score        Int?
+  isActive     Boolean @default(true)
+
+  riskAssessments RiskAssessment[]
+}
+
+model RefRegionScore {
+  id           String  @id @default(cuid())
+  categoryName String
+  score        Int
+  isActive     Boolean @default(true)
+
+  riskAssessments RiskAssessment[]
+}
+
+model RefCountryScore {
+  id           String  @id @default(cuid())
+  categoryName String
+  score        Int
+  isActive     Boolean @default(true)
+
+  riskAssessments RiskAssessment[]
+}
+
+model RefNotaryServiceTypeScore {
+  id           String  @id @default(cuid())
+  categoryName String
+  score        Int
+  isActive     Boolean @default(true)
+
+  riskAssessments RiskAssessment[]
+}
