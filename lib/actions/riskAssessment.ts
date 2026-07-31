@@ -9,27 +9,8 @@ import {
   riskAssessmentSchema,
   type RiskAssessmentOutput,
 } from "@/lib/validations";
-import type { ActionResult } from "@/lib/actions/customer";
-
-function flattenZodError(error: {
-  issues: { path: PropertyKey[]; message: string }[];
-}): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.map(String).join(".");
-    if (!out[key]) out[key] = issue.message;
-  }
-  return out;
-}
-
-/** "" dari <select> yang belum dipilih diperlakukan setara "tidak dipilih" (undefined). */
-function nullifyEmpty<T extends Record<string, unknown>>(obj: T): T {
-  const out = { ...obj };
-  for (const key in out) {
-    if (out[key] === "") out[key] = undefined as never;
-  }
-  return out;
-}
+import { nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
+import type { ActionResult } from "@/lib/actions/shared";
 
 /** Radio "YA"/"TIDAK" → boolean. Dikonversi di sini (bukan di schema zod) agar
  * tipe input/output form persis sama — lihat catatan di lib/validations.ts. */

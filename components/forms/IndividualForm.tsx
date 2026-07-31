@@ -297,8 +297,8 @@ export function IndividualForm() {
         description="CDD Perorangan — Section 2.C. Opsional, bisa lebih dari satu."
       >
         <FullRow>
-          <BeneficialOwnerArrayField
-            control={control as never}
+          <BeneficialOwnerArrayField<IndividualFormValues>
+            control={control}
             register={register}
             setValue={setValue}
             errors={errors}
@@ -306,7 +306,7 @@ export function IndividualForm() {
         </FullRow>
       </SectionCard>
 
-      <NotaryServiceFields register={register} errors={errors} />
+      <NotaryServiceFields<IndividualFormValues> register={register} errors={errors} />
 
       <div className="flex justify-end gap-3">
         <button

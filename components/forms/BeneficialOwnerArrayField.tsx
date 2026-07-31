@@ -3,35 +3,58 @@
 import {
   useFieldArray,
   useWatch,
+  type ArrayPath,
   type Control,
+  type FieldErrors,
+  type FieldPath,
+  type FieldValues,
   type UseFormRegister,
   type UseFormSetValue,
-  type FieldErrors,
 } from "react-hook-form";
 import { TextField, SelectField, FullRow } from "@/components/forms/fields";
 import { jenisIdentitasLabels, labelOptions } from "@/lib/labels";
 import { isForeignNational } from "@/lib/wna";
+import type { BeneficialOwnerFormValues } from "@/lib/validations";
 
 const jenisIdentitasOptions = labelOptions(jenisIdentitasLabels);
 
+// beneficialOwners punya `.default([])` di zod, jadi opsional di tipe input form.
+type FormWithBeneficialOwners = FieldValues & {
+  beneficialOwners?: BeneficialOwnerFormValues[];
+};
+
+const emptyBeneficialOwner: BeneficialOwnerFormValues = {
+  namaLengkap: "",
+  namaAlias: "",
+  jenisIdentitas: "",
+  noIdentitas: "",
+  tempatLahir: "",
+  tanggalLahir: "",
+  kewarganegaraan: "",
+  alamatTempatTinggal: "",
+  alamatNegaraAsal: "",
+  npwp: "",
+  hubunganDenganPenggunaJasa: "",
+};
+
 // Section 1.C / 2.C / 3.C — "Informasi Pemilik Manfaat (Beneficial Owner)", bisa lebih dari satu.
-export function BeneficialOwnerArrayField({
+export function BeneficialOwnerArrayField<T extends FormWithBeneficialOwners>({
   control,
   register,
   setValue,
   errors,
   roleQuickSelect,
 }: {
-  control: Control<any, any, any>;
-  register: UseFormRegister<any>;
-  setValue: UseFormSetValue<any>;
-  errors: FieldErrors<any>;
+  control: Control<T>;
+  register: UseFormRegister<T>;
+  setValue: UseFormSetValue<T>;
+  errors: FieldErrors<T>;
   /** Section 3.C.C9: quick-select peran khusus Legal Arrangement (mengisi field teks yang sama). */
   roleQuickSelect?: readonly string[];
 }) {
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "beneficialOwners",
+    name: "beneficialOwners" as ArrayPath<T>,
   });
 
   return (
@@ -55,21 +78,7 @@ export function BeneficialOwnerArrayField({
       ))}
       <button
         type="button"
-        onClick={() =>
-          append({
-            namaLengkap: "",
-            namaAlias: "",
-            jenisIdentitas: "",
-            noIdentitas: "",
-            tempatLahir: "",
-            tanggalLahir: "",
-            kewarganegaraan: "",
-            alamatTempatTinggal: "",
-            alamatNegaraAsal: "",
-            npwp: "",
-            hubunganDenganPenggunaJasa: "",
-          })
-        }
+        onClick={() => append(emptyBeneficialOwner as never)}
         className="rounded-md border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
       >
         + Tambah Pemilik Manfaat
@@ -78,7 +87,7 @@ export function BeneficialOwnerArrayField({
   );
 }
 
-function BeneficialOwnerRow({
+function BeneficialOwnerRow<T extends FormWithBeneficialOwners>({
   control,
   register,
   setValue,
@@ -87,25 +96,30 @@ function BeneficialOwnerRow({
   onRemove,
   roleQuickSelect,
 }: {
-  control: Control<any, any, any>;
-  register: UseFormRegister<any>;
-  setValue: UseFormSetValue<any>;
-  errors: FieldErrors<any>;
+  control: Control<T>;
+  register: UseFormRegister<T>;
+  setValue: UseFormSetValue<T>;
+  errors: FieldErrors<T>;
   index: number;
   onRemove: () => void;
   roleQuickSelect?: readonly string[];
 }) {
   const kewarganegaraan = useWatch({
     control,
-    name: `beneficialOwners.${index}.kewarganegaraan`,
+    name: `beneficialOwners.${index}.kewarganegaraan` as FieldPath<T>,
   });
-  const boErrors = (errors as any)?.beneficialOwners?.[index];
+  const boErrors = (
+    errors.beneficialOwners as FieldErrors<BeneficialOwnerFormValues>[] | undefined
+  )?.[index];
+
+  const field = (name: string) =>
+    register(`beneficialOwners.${index}.${name}` as FieldPath<T>);
 
   return (
     <div className="rounded-md border border-gray-200 p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-700">
-          Pemilik Manfaat #{index + 1}
+          {`Pemilik Manfaat #${index + 1}`}
         </h3>
         <button
           type="button"
@@ -120,63 +134,59 @@ function BeneficialOwnerRow({
           label="Nama Lengkap"
           required
           error={boErrors?.namaLengkap}
-          registration={register(`beneficialOwners.${index}.namaLengkap`)}
+          registration={field("namaLengkap")}
         />
         <TextField
           label="Nama Alias"
           error={boErrors?.namaAlias}
-          registration={register(`beneficialOwners.${index}.namaAlias`)}
+          registration={field("namaAlias")}
         />
         <SelectField
           label="Jenis Identitas"
           options={jenisIdentitasOptions}
           error={boErrors?.jenisIdentitas}
-          registration={register(`beneficialOwners.${index}.jenisIdentitas`)}
+          registration={field("jenisIdentitas")}
         />
         <TextField
           label="No. Identitas"
           error={boErrors?.noIdentitas}
-          registration={register(`beneficialOwners.${index}.noIdentitas`)}
+          registration={field("noIdentitas")}
         />
         <TextField
           label="Tempat Lahir"
           error={boErrors?.tempatLahir}
-          registration={register(`beneficialOwners.${index}.tempatLahir`)}
+          registration={field("tempatLahir")}
         />
         <TextField
           label="Tanggal Lahir"
           type="date"
           error={boErrors?.tanggalLahir}
-          registration={register(`beneficialOwners.${index}.tanggalLahir`)}
+          registration={field("tanggalLahir")}
         />
         <TextField
           label="Kewarganegaraan"
           error={boErrors?.kewarganegaraan}
-          registration={register(`beneficialOwners.${index}.kewarganegaraan`)}
+          registration={field("kewarganegaraan")}
         />
         <TextField
           label="NPWP"
           error={boErrors?.npwp}
-          registration={register(`beneficialOwners.${index}.npwp`)}
+          registration={field("npwp")}
         />
         <FullRow>
           <TextField
             label="Alamat Tempat Tinggal"
             error={boErrors?.alamatTempatTinggal}
-            registration={register(
-              `beneficialOwners.${index}.alamatTempatTinggal`
-            )}
+            registration={field("alamatTempatTinggal")}
           />
         </FullRow>
-        {isForeignNational(kewarganegaraan) && (
+        {isForeignNational(kewarganegaraan as string | undefined) && (
           <FullRow>
             <TextField
               label="Alamat di Negara Asal"
               hint="Ditampilkan karena Kewarganegaraan diisi selain Indonesia/WNI"
               error={boErrors?.alamatNegaraAsal}
-              registration={register(
-                `beneficialOwners.${index}.alamatNegaraAsal`
-              )}
+              registration={field("alamatNegaraAsal")}
             />
           </FullRow>
         )}
@@ -184,9 +194,7 @@ function BeneficialOwnerRow({
           <TextField
             label="Hubungan dengan Pengguna Jasa"
             error={boErrors?.hubunganDenganPenggunaJasa}
-            registration={register(
-              `beneficialOwners.${index}.hubunganDenganPenggunaJasa`
-            )}
+            registration={field("hubunganDenganPenggunaJasa")}
           />
         </FullRow>
         {roleQuickSelect && (
@@ -198,8 +206,8 @@ function BeneficialOwnerRow({
                   type="button"
                   onClick={() =>
                     setValue(
-                      `beneficialOwners.${index}.hubunganDenganPenggunaJasa`,
-                      role,
+                      `beneficialOwners.${index}.hubunganDenganPenggunaJasa` as FieldPath<T>,
+                      role as never,
                       { shouldValidate: true, shouldDirty: true }
                     )
                   }

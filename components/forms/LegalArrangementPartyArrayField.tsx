@@ -2,28 +2,52 @@
 
 import {
   useFieldArray,
+  type ArrayPath,
   type Control,
-  type UseFormRegister,
   type FieldErrors,
+  type FieldPath,
+  type FieldValues,
+  type UseFormRegister,
 } from "react-hook-form";
 import { TextField, SelectField, FullRow } from "@/components/forms/fields";
 import { jenisIdentitasLabels, labelOptions } from "@/lib/labels";
+import type { LegalArrangementPartyFormValues } from "@/lib/validations";
 
 const jenisIdentitasOptions = labelOptions(jenisIdentitasLabels);
 
+// parties punya `.default([])` di zod, jadi opsional di tipe input form.
+type FormWithParties = FieldValues & {
+  parties?: LegalArrangementPartyFormValues[];
+};
+
+const emptyParty: LegalArrangementPartyFormValues = {
+  namaLengkap: "",
+  namaAlias: "",
+  jenisIdentitas: "",
+  noIdentitas: "",
+  tempatLahir: "",
+  tanggalLahir: "",
+  kewarganegaraan: "",
+  alamatTempatTinggal: "",
+  hubunganHukumPenggunaJasa: "",
+  noPerjanjian: "",
+  tanggalPerjanjian: "",
+  penandatangananPerjanjian: "",
+};
+
 // Section 3.D — Informasi Pihak dalam Legal Arrangement, bisa lebih dari satu.
-export function LegalArrangementPartyArrayField({
+export function LegalArrangementPartyArrayField<T extends FormWithParties>({
   control,
   register,
   errors,
 }: {
-  control: Control<any, any, any>;
-  register: UseFormRegister<any>;
-  errors: FieldErrors<any>;
+  control: Control<T>;
+  register: UseFormRegister<T>;
+  errors: FieldErrors<T>;
 }) {
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "parties",
+    name: "parties" as ArrayPath<T>,
   });
 
   return (
@@ -32,12 +56,18 @@ export function LegalArrangementPartyArrayField({
         <p className="text-sm text-gray-500">Belum ada pihak ditambahkan.</p>
       )}
       {fields.map((field, index) => {
-        const partyErrors = (errors as any)?.parties?.[index];
+        const partyErrors = (
+          errors.parties as
+            | FieldErrors<LegalArrangementPartyFormValues>[]
+            | undefined
+        )?.[index];
+        const partyField = (name: string) =>
+          register(`parties.${index}.${name}` as FieldPath<T>);
         return (
           <div key={field.id} className="rounded-md border border-gray-200 p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">
-                Pihak #{index + 1}
+                {`Pihak #${index + 1}`}
               </h3>
               <button
                 type="button"
@@ -52,74 +82,68 @@ export function LegalArrangementPartyArrayField({
                 label="Nama Lengkap"
                 required
                 error={partyErrors?.namaLengkap}
-                registration={register(`parties.${index}.namaLengkap`)}
+                registration={partyField("namaLengkap")}
               />
               <TextField
                 label="Nama Alias"
                 error={partyErrors?.namaAlias}
-                registration={register(`parties.${index}.namaAlias`)}
+                registration={partyField("namaAlias")}
               />
               <SelectField
                 label="Jenis Identitas"
                 options={jenisIdentitasOptions}
                 error={partyErrors?.jenisIdentitas}
-                registration={register(`parties.${index}.jenisIdentitas`)}
+                registration={partyField("jenisIdentitas")}
               />
               <TextField
                 label="No. Identitas"
                 error={partyErrors?.noIdentitas}
-                registration={register(`parties.${index}.noIdentitas`)}
+                registration={partyField("noIdentitas")}
               />
               <TextField
                 label="Tempat Lahir"
                 error={partyErrors?.tempatLahir}
-                registration={register(`parties.${index}.tempatLahir`)}
+                registration={partyField("tempatLahir")}
               />
               <TextField
                 label="Tanggal Lahir"
                 type="date"
                 error={partyErrors?.tanggalLahir}
-                registration={register(`parties.${index}.tanggalLahir`)}
+                registration={partyField("tanggalLahir")}
               />
               <TextField
                 label="Kewarganegaraan"
                 error={partyErrors?.kewarganegaraan}
-                registration={register(`parties.${index}.kewarganegaraan`)}
+                registration={partyField("kewarganegaraan")}
               />
               <TextField
                 label="Hubungan Hukum Pengguna Jasa"
                 error={partyErrors?.hubunganHukumPenggunaJasa}
-                registration={register(
-                  `parties.${index}.hubunganHukumPenggunaJasa`
-                )}
+                registration={partyField("hubunganHukumPenggunaJasa")}
               />
               <FullRow>
                 <TextField
                   label="Alamat Tempat Tinggal"
                   error={partyErrors?.alamatTempatTinggal}
-                  registration={register(
-                    `parties.${index}.alamatTempatTinggal`
-                  )}
+                  registration={partyField("alamatTempatTinggal")}
                 />
               </FullRow>
               <TextField
                 label="No. Perjanjian"
                 error={partyErrors?.noPerjanjian}
-                registration={register(`parties.${index}.noPerjanjian`)}
+                registration={partyField("noPerjanjian")}
               />
               <TextField
                 label="Tanggal Perjanjian"
                 type="date"
                 error={partyErrors?.tanggalPerjanjian}
-                registration={register(`parties.${index}.tanggalPerjanjian`)}
+                registration={partyField("tanggalPerjanjian")}
               />
               <FullRow>
                 <TextField
                   label="Penandatanganan Perjanjian"
                   error={partyErrors?.penandatangananPerjanjian}
-                  registration={register(
-                    `parties.${index}.penandatangananPerjanjian`
-                  )}
+                  registration={partyField("penandatangananPerjanjian")}
                 />
               </FullRow>
             </div>
@@ -128,22 +152,7 @@ export function LegalArrangementPartyArrayField({
       })}
       <button
         type="button"
-        onClick={() =>
-          append({
-            namaLengkap: "",
-            namaAlias: "",
-            jenisIdentitas: "",
-            noIdentitas: "",
-            tempatLahir: "",
-            tanggalLahir: "",
-            kewarganegaraan: "",
-            alamatTempatTinggal: "",
-            hubunganHukumPenggunaJasa: "",
-            noPerjanjian: "",
-            tanggalPerjanjian: "",
-            penandatangananPerjanjian: "",
-          })
-        }
+        onClick={() => append(emptyParty as never)}
         className="rounded-md border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
       >
         + Tambah Pihak

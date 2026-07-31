@@ -206,8 +206,8 @@ export function LegalArrangementForm() {
         description="CDD Perikatan Lainnya — Section 3.C. Opsional, bisa lebih dari satu."
       >
         <FullRow>
-          <BeneficialOwnerArrayField
-            control={control as never}
+          <BeneficialOwnerArrayField<LegalArrangementFormValues>
+            control={control}
             register={register}
             setValue={setValue}
             errors={errors}
@@ -221,15 +221,15 @@ export function LegalArrangementForm() {
         description="CDD Perikatan Lainnya — Section 3.D"
       >
         <FullRow>
-          <LegalArrangementPartyArrayField
-            control={control as never}
+          <LegalArrangementPartyArrayField<LegalArrangementFormValues>
+            control={control}
             register={register}
             errors={errors}
           />
         </FullRow>
       </SectionCard>
 
-      <NotaryServiceFields register={register} errors={errors} />
+      <NotaryServiceFields<LegalArrangementFormValues> register={register} errors={errors} />
 
       <div className="flex justify-end gap-3">
         <button

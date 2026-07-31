@@ -48,10 +48,12 @@ export default async function DashboardPage({
   ) {
     where.riskAssessment = { riskCategory: riskCategory as RiskCategory };
   }
-  if (dateFrom || dateTo) {
+  const validDateFrom = dateFrom && !Number.isNaN(Date.parse(dateFrom)) ? dateFrom : undefined;
+  const validDateTo = dateTo && !Number.isNaN(Date.parse(dateTo)) ? dateTo : undefined;
+  if (validDateFrom || validDateTo) {
     where.createdAt = {
-      gte: dateFrom ? new Date(dateFrom) : undefined,
-      lte: dateTo ? new Date(`${dateTo}T23:59:59.999`) : undefined,
+      gte: validDateFrom ? new Date(validDateFrom) : undefined,
+      lte: validDateTo ? new Date(`${validDateTo}T23:59:59.999`) : undefined,
     };
   }
   if (q) {

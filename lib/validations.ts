@@ -135,7 +135,7 @@ export const beneficialOwnerSchema = z.object({
   hubunganDenganPenggunaJasa: optionalString, // C9
 });
 
-export type BeneficialOwnerInput = z.infer<typeof beneficialOwnerSchema>;
+export type BeneficialOwnerFormValues = z.input<typeof beneficialOwnerSchema>;
 
 // ------------------------------------------------------------------
 // Notary Service (Section 1.E / 2.D / 3.E — identik semua tipe)
@@ -145,6 +145,8 @@ export const notaryServiceSchema = z.object({
   namaNotaris: optionalString, // E1
   jasaYangDiberikan: optionalString, // E2
 });
+
+export type NotaryServiceFormValues = z.input<typeof notaryServiceSchema>;
 
 // ------------------------------------------------------------------
 // 1. CDD Korporasi
@@ -299,6 +301,10 @@ export const legalArrangementPartySchema = z.object({
   tanggalPerjanjian: optionalDateString, // D8a
   penandatangananPerjanjian: optionalString, // D9
 });
+
+export type LegalArrangementPartyFormValues = z.input<
+  typeof legalArrangementPartySchema
+>;
 
 export const legalArrangementFormSchema = z.object({
   legalArrangementDetail: legalArrangementDetailSchema,

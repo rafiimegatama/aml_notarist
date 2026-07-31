@@ -215,8 +215,8 @@ export function CorporateForm() {
         description="CDD Korporasi — Section 1.C. Opsional, bisa lebih dari satu."
       >
         <FullRow>
-          <BeneficialOwnerArrayField
-            control={control as never}
+          <BeneficialOwnerArrayField<CorporateFormValues>
+            control={control}
             register={register}
             setValue={setValue}
             errors={errors}
@@ -304,7 +304,7 @@ export function CorporateForm() {
         </FullRow>
       </SectionCard>
 
-      <NotaryServiceFields register={register} errors={errors} />
+      <NotaryServiceFields<CorporateFormValues> register={register} errors={errors} />
 
       <div className="flex justify-end gap-3">
         <button

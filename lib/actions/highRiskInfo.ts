@@ -8,26 +8,8 @@ import {
   highRiskAdditionalInfoSchema,
   type HighRiskAdditionalInfoOutput,
 } from "@/lib/validations";
-import type { ActionResult } from "@/lib/actions/customer";
-
-function flattenZodError(error: {
-  issues: { path: PropertyKey[]; message: string }[];
-}): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.map(String).join(".");
-    if (!out[key]) out[key] = issue.message;
-  }
-  return out;
-}
-
-function nullifyEmpty<T extends Record<string, unknown>>(obj: T): T {
-  const out = { ...obj };
-  for (const key in out) {
-    if (out[key] === "") out[key] = undefined as never;
-  }
-  return out;
-}
+import { toDate, nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
+import type { ActionResult } from "@/lib/actions/shared";
 
 export async function saveHighRiskAdditionalInfo(
   customerId: string,
@@ -35,10 +17,17 @@ export async function saveHighRiskAdditionalInfo(
 ): Promise<ActionResult> {
   // Section 7.A hanya berlaku untuk PERORANGAN berkategori Tinggi — dijaga
   // ulang di server (bukan hanya di UI) supaya tidak bisa dilewati.
-  const customer = await prisma.customer.findUniqueOrThrow({
+  const customer = await prisma.customer.findUnique({
     where: { id: customerId },
     include: { riskAssessment: true },
   });
+  if (!customer) {
+    return {
+      success: false,
+      formError: "Data CDD tidak ditemukan. Muat ulang halaman.",
+      fieldErrors: {},
+    };
+  }
   if (
     customer.type !== "PERORANGAN" ||
     customer.riskAssessment?.riskCategory !== "TINGGI"
@@ -62,11 +51,11 @@ export async function saveHighRiskAdditionalInfo(
     create: {
       customerId,
       ...data,
-      tanggalLahir: data.tanggalLahir ? new Date(data.tanggalLahir) : undefined,
+      tanggalLahir: toDate(data.tanggalLahir),
     },
     update: {
       ...data,
-      tanggalLahir: data.tanggalLahir ? new Date(data.tanggalLahir) : undefined,
+      tanggalLahir: toDate(data.tanggalLahir),
     },
   });
 

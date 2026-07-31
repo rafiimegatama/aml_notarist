@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import type { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { computeAndPersistStatus } from "@/lib/status";
+import { toDate, nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
+import type { ActionResult } from "@/lib/actions/shared";
 import {
   corporateFormSchema,
   type CorporateFormOutput,
@@ -13,32 +14,6 @@ import {
   legalArrangementFormSchema,
   type LegalArrangementFormOutput,
 } from "@/lib/validations";
-
-export type ActionResult =
-  | { success: true }
-  | { success: false; formError?: string; fieldErrors: Record<string, string> };
-
-function toDate(value?: string) {
-  return value ? new Date(value) : undefined;
-}
-
-/** "" dari input HTML kosong diperlakukan setara "tidak diisi" (undefined) di level Prisma. */
-function nullifyEmpty<T extends Record<string, unknown>>(obj: T): T {
-  const out = { ...obj };
-  for (const key in out) {
-    if (out[key] === "") out[key] = undefined as never;
-  }
-  return out;
-}
-
-function flattenZodError(error: ZodError): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.map(String).join(".");
-    if (!out[key]) out[key] = issue.message;
-  }
-  return out;
-}
 
 export async function createCorporateCustomer(
   input: CorporateFormOutput

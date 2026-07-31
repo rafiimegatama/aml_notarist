@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
-import type { FieldError } from "react-hook-form";
+import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
 
-type Registration = ReturnType<import("react-hook-form").UseFormRegister<any>>;
+type Registration = UseFormRegisterReturn;
 
 function ErrorText({ error }: { error?: FieldError }) {
   if (!error) return null;
