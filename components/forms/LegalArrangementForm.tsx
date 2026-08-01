@@ -10,6 +10,7 @@ import {
   type LegalArrangementFormOutput,
 } from "@/lib/validations";
 import { createLegalArrangementCustomer } from "@/lib/actions/customer";
+import type { DraftDocument } from "@/lib/actions/document";
 import {
   SectionCard,
   TextField,
@@ -20,6 +21,9 @@ import {
 import { BeneficialOwnerArrayField } from "@/components/forms/BeneficialOwnerArrayField";
 import { LegalArrangementPartyArrayField } from "@/components/forms/LegalArrangementPartyArrayField";
 import { NotaryServiceFields } from "@/components/forms/NotaryServiceFields";
+import { OcrAssistBanner } from "@/components/forms/OcrAssistBanner";
+import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
+import { applyFieldGuesses } from "@/lib/ocr/applyFieldGuesses";
 import { jenisIdentitasLabels, labelOptions } from "@/lib/labels";
 
 const jenisIdentitasOptions = labelOptions(jenisIdentitasLabels);
@@ -51,36 +55,46 @@ const defaultValues: LegalArrangementFormValues = {
   },
 };
 
-export function LegalArrangementForm() {
+export function LegalArrangementForm({
+  ocrDraft,
+}: {
+  ocrDraft?: DraftDocument | null;
+}) {
   const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const {
     register,
     control,
     handleSubmit,
     setValue,
     setError,
-    formState: { errors },
+    setFocus,
+    formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<
     LegalArrangementFormValues,
     unknown,
     LegalArrangementFormOutput
   >({
     resolver: zodResolver(legalArrangementFormSchema),
-    defaultValues,
+    defaultValues: ocrDraft
+      ? applyFieldGuesses(defaultValues, ocrDraft.fieldGuesses)
+      : defaultValues,
   });
+
+  useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
   const onSubmit = handleSubmit(async (values: LegalArrangementFormOutput) => {
     setFormError(null);
-    setSubmitting(true);
-    const result = await createLegalArrangementCustomer(values);
-    setSubmitting(false);
+    const result = await createLegalArrangementCustomer(values, ocrDraft?.id);
     if (!result.success) {
       setFormError(
         result.formError ?? "Periksa kembali isian yang bertanda merah."
       );
-      for (const [path, message] of Object.entries(result.fieldErrors)) {
+      const fieldPaths = Object.entries(result.fieldErrors);
+      for (const [path, message] of fieldPaths) {
         setError(path as never, { message });
+      }
+      if (fieldPaths.length > 0) {
+        setFocus(fieldPaths[0][0] as never);
       }
     }
   });
@@ -88,10 +102,15 @@ export function LegalArrangementForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       {formError && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {formError}
         </div>
       )}
+
+      {ocrDraft && <OcrAssistBanner rawText={ocrDraft.rawText} />}
 
       <SectionCard
         title="A. Informasi Dasar Pengguna Jasa"
@@ -234,10 +253,10 @@ export function LegalArrangementForm() {
       <div className="flex justify-end gap-3">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={isSubmitting}
           className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
         >
-          {submitting ? "Menyimpan..." : "Simpan CDD Perikatan Lainnya"}
+          {isSubmitting ? "Menyimpan..." : "Simpan CDD Perikatan Lainnya"}
         </button>
       </div>
     </form>

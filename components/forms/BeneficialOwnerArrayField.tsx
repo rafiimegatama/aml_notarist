@@ -123,7 +123,11 @@ function BeneficialOwnerRow<T extends FormWithBeneficialOwners>({
         </h3>
         <button
           type="button"
-          onClick={onRemove}
+          onClick={() => {
+            if (window.confirm(`Hapus Pemilik Manfaat #${index + 1}?`)) {
+              onRemove();
+            }
+          }}
           className="text-sm text-red-600 hover:underline"
         >
           Hapus

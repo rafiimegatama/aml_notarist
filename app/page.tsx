@@ -13,6 +13,7 @@ import {
   labelOptions,
 } from "@/lib/labels";
 import { formatDate } from "@/components/detail/DetailPrimitives";
+import { ScanUploadPanel } from "@/components/upload/ScanUploadPanel";
 
 const typeOptions = labelOptions(customerTypeLabels);
 const statusOptions = labelOptions(customerStatusLabels);
@@ -93,6 +94,8 @@ export default async function DashboardPage({
           + Buat CDD Baru
         </Link>
       </div>
+
+      <ScanUploadPanel />
 
       <form
         method="get"

@@ -68,6 +68,14 @@ export function AdminRefTable({
   }
 
   function toggleActive(row: RefRow) {
+    if (
+      row.isActive &&
+      !window.confirm(
+        `Nonaktifkan kategori "${row.categoryName}"? Kategori nonaktif tidak akan muncul sebagai pilihan skoring baru.`
+      )
+    ) {
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const result = await setRefScoreRowActive(

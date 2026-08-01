@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { computeAndPersistStatus } from "@/lib/status";
 import { toDate, nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
 import type { ActionResult } from "@/lib/actions/shared";
+import { attachDraftDocument } from "@/lib/actions/document";
 import {
   corporateFormSchema,
   type CorporateFormOutput,
@@ -16,7 +17,8 @@ import {
 } from "@/lib/validations";
 
 export async function createCorporateCustomer(
-  input: CorporateFormOutput
+  input: CorporateFormOutput,
+  draftUploadId?: string
 ): Promise<ActionResult> {
   const parsed = corporateFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -61,6 +63,8 @@ export async function createCorporateCustomer(
       data: { customerId: customer.id, ...nullifyEmpty(data.notaryService) },
     });
 
+    await attachDraftDocument(tx, draftUploadId, customer.id);
+
     return customer;
   });
 
@@ -70,7 +74,8 @@ export async function createCorporateCustomer(
 }
 
 export async function createIndividualCustomer(
-  input: IndividualFormOutput
+  input: IndividualFormOutput,
+  draftUploadId?: string
 ): Promise<ActionResult> {
   const parsed = individualFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -105,6 +110,8 @@ export async function createIndividualCustomer(
       data: { customerId: customer.id, ...nullifyEmpty(data.notaryService) },
     });
 
+    await attachDraftDocument(tx, draftUploadId, customer.id);
+
     return customer;
   });
 
@@ -114,7 +121,8 @@ export async function createIndividualCustomer(
 }
 
 export async function createLegalArrangementCustomer(
-  input: LegalArrangementFormOutput
+  input: LegalArrangementFormOutput,
+  draftUploadId?: string
 ): Promise<ActionResult> {
   const parsed = legalArrangementFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -162,6 +170,8 @@ export async function createLegalArrangementCustomer(
     await tx.notaryService.create({
       data: { customerId: customer.id, ...nullifyEmpty(data.notaryService) },
     });
+
+    await attachDraftDocument(tx, draftUploadId, customer.id);
 
     return customer;
   });

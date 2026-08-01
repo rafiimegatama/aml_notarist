@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +7,7 @@ import {
   DetailItem,
   formatDate,
 } from "@/components/detail/DetailPrimitives";
+import { ExportToSheetButton } from "@/components/detail/ExportToSheetButton";
 import {
   customerTypeLabels,
   customerStatusLabels,
@@ -30,6 +32,28 @@ function yesNo(value: boolean | null | undefined): string | null {
   if (value === true) return "Ya";
   if (value === false) return "Tidak";
   return null;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const customer = await prisma.customer.findUnique({
+    where: { id },
+    select: {
+      corporateDetail: { select: { namaKorporasi: true } },
+      individualDetail: { select: { namaLengkap: true } },
+      legalArrangementDetail: { select: { nama: true } },
+    },
+  });
+  const name =
+    customer?.corporateDetail?.namaKorporasi ??
+    customer?.individualDetail?.namaLengkap ??
+    customer?.legalArrangementDetail?.nama ??
+    "Detail CDD";
+  return { title: name };
 }
 
 export default async function CddDetailPage({
@@ -59,6 +83,7 @@ export default async function CddDetailPage({
           },
         },
         highRiskAdditionalInfo: true,
+        documents: { orderBy: { createdAt: "desc" } },
       },
     }),
     prisma.refBusinessSectorScore.count({ where: { isActive: true } }),
@@ -112,6 +137,7 @@ export default async function CddDetailPage({
           >
             Export PDF
           </Link>
+          <ExportToSheetButton customerId={customer.id} />
         </div>
       </div>
 
@@ -447,6 +473,40 @@ export default async function CddDetailPage({
           />
           <DetailItem label="Alamat Sesuai Identitas" value={customer.highRiskAdditionalInfo.alamatSesuaiIdentitas} full />
         </DetailSection>
+      )}
+
+      {/* ============ Dokumen Terlampir (foto/scan formulir cetak) ============ */}
+      {customer.documents.length > 0 && (
+        <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Dokumen Terlampir
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Foto/scan formulir cetak yang diupload untuk OCR saat CDD ini
+            dibuat.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {customer.documents.map((doc) => (
+              <a
+                key={doc.id}
+                href={`/api/documents/${doc.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block overflow-hidden rounded-md border border-gray-200 hover:border-blue-400"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- foto lokal dari disk, bukan aset yang perlu dioptimasi Next/Image */}
+                <img
+                  src={`/api/documents/${doc.id}`}
+                  alt={doc.fileName}
+                  className="h-32 w-full object-cover"
+                />
+                <span className="block truncate px-2 py-1 text-xs text-gray-600">
+                  {doc.fileName}
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

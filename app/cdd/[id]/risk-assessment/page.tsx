@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { RiskAssessmentForm } from "@/components/forms/RiskAssessmentForm";
@@ -7,6 +8,28 @@ function boolToYesNo(value: boolean | null | undefined): "YA" | "TIDAK" | "" {
   if (value === true) return "YA";
   if (value === false) return "TIDAK";
   return "";
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const customer = await prisma.customer.findUnique({
+    where: { id },
+    select: {
+      corporateDetail: { select: { namaKorporasi: true } },
+      individualDetail: { select: { namaLengkap: true } },
+      legalArrangementDetail: { select: { nama: true } },
+    },
+  });
+  const name =
+    customer?.corporateDetail?.namaKorporasi ??
+    customer?.individualDetail?.namaLengkap ??
+    customer?.legalArrangementDetail?.nama ??
+    "pengguna jasa";
+  return { title: `Risk Assessment — ${name}` };
 }
 
 export default async function RiskAssessmentPage({

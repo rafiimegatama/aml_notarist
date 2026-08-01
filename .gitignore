@@ -45,3 +45,7 @@ next-env.d.ts
 # prisma sqlite database
 /prisma/dev.db
 /prisma/dev.db-journal
+
+# uploaded scans + OCR language cache (local only, contains PII)
+/storage/uploads/
+/storage/ocr-cache/

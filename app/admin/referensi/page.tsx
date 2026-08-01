@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { AdminRefTable } from "@/components/admin/AdminRefTable";
 import { REF_TABLE_CONFIG } from "@/lib/refTableConfig";
+
+export const metadata: Metadata = {
+  title: "Referensi Data — Tabel Skor Risiko",
+};
 
 export default async function AdminReferensiPage() {
   const [

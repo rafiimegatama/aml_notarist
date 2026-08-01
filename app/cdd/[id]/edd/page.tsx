@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { HighRiskAdditionalInfoForm } from "@/components/forms/HighRiskAdditionalInfoForm";
 import { customerTypeLabels } from "@/lib/labels";
 import type { HighRiskAdditionalInfoValues } from "@/lib/validations";
+
+export const metadata: Metadata = {
+  title: "Informasi Tambahan (EDD)",
+};
 
 export default async function HighRiskAdditionalInfoPage({
   params,

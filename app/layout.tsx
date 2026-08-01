@@ -14,7 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Notary CDD & Risk Assessment",
+  title: {
+    default: "Notary CDD & Risk Assessment",
+    template: "%s · Notary CDD & Risk Assessment",
+  },
   description: "Aplikasi CDD dan Penilaian Tingkat Risiko untuk kantor notaris",
 };
 

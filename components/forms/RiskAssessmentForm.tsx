@@ -17,6 +17,7 @@ import {
   RadioGroupField,
   FullRow,
 } from "@/components/forms/fields";
+import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import {
   pepAsalNegaraLabels,
   pepJabatanLabels,
@@ -53,17 +54,19 @@ export function RiskAssessmentForm({
   notaryServiceTypeOptions: RefScoreOption[];
 }) {
   const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const {
     register,
     control,
     handleSubmit,
     setError,
-    formState: { errors },
+    setFocus,
+    formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<RiskAssessmentValues, unknown, RiskAssessmentOutput>({
     resolver: zodResolver(riskAssessmentSchema),
     defaultValues: initialValues,
   });
+
+  useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
   const isPep = useWatch({ control, name: "isPep" });
   const [
@@ -121,15 +124,17 @@ export function RiskAssessmentForm({
 
   const onSubmit = handleSubmit(async (values: RiskAssessmentOutput) => {
     setFormError(null);
-    setSubmitting(true);
     const result = await saveRiskAssessment(customerId, values);
-    setSubmitting(false);
     if (!result.success) {
       setFormError(
         result.formError ?? "Periksa kembali isian yang bertanda merah."
       );
-      for (const [path, message] of Object.entries(result.fieldErrors)) {
+      const fieldPaths = Object.entries(result.fieldErrors);
+      for (const [path, message] of fieldPaths) {
         setError(path as never, { message });
+      }
+      if (fieldPaths.length > 0) {
+        setFocus(fieldPaths[0][0] as never);
       }
     }
   });
@@ -137,7 +142,10 @@ export function RiskAssessmentForm({
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       {formError && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {formError}
         </div>
       )}
@@ -295,10 +303,10 @@ export function RiskAssessmentForm({
       <div className="flex justify-end gap-3">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={isSubmitting}
           className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
         >
-          {submitting ? "Menyimpan..." : "Simpan Risk Assessment"}
+          {isSubmitting ? "Menyimpan..." : "Simpan Risk Assessment"}
         </button>
       </div>
     </form>

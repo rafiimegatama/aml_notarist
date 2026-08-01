@@ -1,6 +1,21 @@
+import type { Metadata } from "next";
 import { LegalArrangementForm } from "@/components/forms/LegalArrangementForm";
+import { loadDraftDocument } from "@/lib/actions/document";
 
-export default function NewLegalArrangementCddPage() {
+export const metadata: Metadata = {
+  title: "CDD Baru — Perikatan Lainnya",
+};
+
+export default async function NewLegalArrangementCddPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ draftUploadId?: string }>;
+}) {
+  const { draftUploadId } = await searchParams;
+  const ocrDraft = draftUploadId
+    ? await loadDraftDocument(draftUploadId, "LEGAL_ARRANGEMENT")
+    : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -12,7 +27,7 @@ export default function NewLegalArrangementCddPage() {
           menyimpan. Field lain boleh dilengkapi belakangan.
         </p>
       </div>
-      <LegalArrangementForm />
+      <LegalArrangementForm ocrDraft={ocrDraft} />
     </div>
   );
 }

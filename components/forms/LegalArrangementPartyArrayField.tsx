@@ -71,7 +71,11 @@ export function LegalArrangementPartyArrayField<T extends FormWithParties>({
               </h3>
               <button
                 type="button"
-                onClick={() => remove(index)}
+                onClick={() => {
+                  if (window.confirm(`Hapus Pihak #${index + 1}?`)) {
+                    remove(index);
+                  }
+                }}
                 className="text-sm text-red-600 hover:underline"
               >
                 Hapus

@@ -157,6 +157,7 @@ model Customer {
   notaryService           NotaryService?
   riskAssessment          RiskAssessment?
   highRiskAdditionalInfo  HighRiskAdditionalInfo?
+  documents               CustomerDocument[]
 }
 
 // ============================================================
@@ -401,6 +402,32 @@ model HighRiskAdditionalInfo {
   sumberKekayaanLainnya       String? // H9, isi jika sumberKekayaan = LAIN_LAIN
   namaPerusahaanTempatBekerja String? // H10
   jumlahPenghasilanPerBulan   PenghasilanBulananEdd? // H11
+}
+
+// ============================================================
+// Dokumen Formulir Cetak (foto/scan) + hasil OCR
+// Bukan bagian dari form CDD (reference-data.md) — ini murni fitur teknis
+// untuk membantu pengisian: notaris upload foto formulir kertas yang sudah
+// diisi tangan, OCR lokal (Tesseract) mengekstrak teks, lalu beberapa field
+// bebas-teks di form dibuat prefill sebagai SARAN yang wajib direview.
+// customerId nullable karena upload terjadi SEBELUM record Customer dibuat
+// (draft) — baru di-link setelah notaris submit form CDD terkait.
+// ============================================================
+
+model CustomerDocument {
+  id         String        @id @default(cuid())
+  customerId String?
+  customer   Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  formType   CustomerType // jenis form CDD yang dituju saat upload, dipakai untuk redirect + pemilihan label map
+
+  fileName String // nama file asli dari notaris (ditampilkan saja, bukan dipakai sebagai path)
+  filePath String // nama file tersimpan (UUID) relatif ke storage/uploads
+  mimeType String
+
+  ocrRawText   String? // teks mentah hasil OCR, ditampilkan ke notaris untuk cross-check manual
+  fieldGuesses Json? // Record<string, string> — path field form -> nilai tebakan dari label matching
+
+  createdAt DateTime @default(now())
 }
 
 // ============================================================
