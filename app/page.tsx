@@ -19,6 +19,7 @@ import {
   STATUS_QUERY_INCLUDE,
   type CompletionBreakdown,
 } from "@/lib/status";
+import { isReviewOverdue } from "@/lib/reviewReminder";
 
 const typeOptions = labelOptions(customerTypeLabels);
 const statusOptions = labelOptions(customerStatusLabels);
@@ -52,8 +53,13 @@ export default async function DashboardPage({
   const riskCategory = firstOrUndefined(sp.riskCategory) || undefined;
   const dateFrom = firstOrUndefined(sp.dateFrom) || undefined;
   const dateTo = firstOrUndefined(sp.dateTo) || undefined;
+  const reviewOverdue = firstOrUndefined(sp.reviewOverdue) === "1";
+  const ltkm = firstOrUndefined(sp.ltkm) === "1";
 
   const where: Prisma.CustomerWhereInput = {};
+  if (ltkm) {
+    where.isLtkm = true;
+  }
   if (type && (Object.values(CustomerType) as string[]).includes(type)) {
     where.type = type as CustomerType;
   }
@@ -82,13 +88,36 @@ export default async function DashboardPage({
     ];
   }
 
-  const customers = await prisma.customer.findMany({
+  const customersFetched = await prisma.customer.findMany({
     where,
     include: STATUS_QUERY_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
 
-  const hasFilters = !!(q || type || status || riskCategory || dateFrom || dateTo);
+  // FR-7 — "jatuh tempo tinjau ulang" adalah nilai turunan (bukan kolom
+  // tersimpan), jadi difilter di memori dari data yang sudah di-fetch, sama
+  // seperti pola di app/admin/retensi/page.tsx untuk kasus analogous (retensi).
+  const now = new Date();
+  const customers = reviewOverdue
+    ? customersFetched.filter((c) =>
+        isReviewOverdue(
+          c.lastReviewedAt ?? c.createdAt,
+          c.riskAssessment?.riskCategory ?? null,
+          now
+        )
+      )
+    : customersFetched;
+
+  const hasFilters = !!(
+    q ||
+    type ||
+    status ||
+    riskCategory ||
+    dateFrom ||
+    dateTo ||
+    reviewOverdue ||
+    ltkm
+  );
 
   return (
     <div className="space-y-6">
@@ -203,7 +232,29 @@ export default async function DashboardPage({
             className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
           />
         </div>
-        <div className="flex items-end gap-2 sm:col-span-6">
+        <div className="flex items-end sm:col-span-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="reviewOverdue"
+              value="1"
+              defaultChecked={reviewOverdue}
+              className="rounded border-gray-300"
+            />
+            Jatuh tempo tinjau ulang (PMPJ)
+          </label>
+        </div>
+        <div className="flex items-end gap-4 sm:col-span-6">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              name="ltkm"
+              value="1"
+              defaultChecked={ltkm}
+              className="rounded border-gray-300"
+            />
+            Hanya LTKM
+          </label>
           <button
             type="submit"
             className="rounded-md bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
@@ -243,7 +294,14 @@ export default async function DashboardPage({
               const category = c.riskAssessment?.riskCategory;
               return (
                 <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 text-gray-900">{name}</td>
+                  <td className="px-4 py-3 text-gray-900">
+                    {name}
+                    {c.isLtkm && (
+                      <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                        LTKM
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-gray-700">
                     {customerTypeLabels[c.type]}
                   </td>

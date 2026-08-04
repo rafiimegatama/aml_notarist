@@ -10,9 +10,12 @@ import {
 import { ExportToSheetButton } from "@/components/detail/ExportToSheetButton";
 import { CompletionChecklist } from "@/components/detail/CompletionChecklist";
 import { ActivityLogSection } from "@/components/detail/ActivityLogSection";
+import { LtkmPanel } from "@/components/detail/LtkmPanel";
 import { getCompletionBreakdown } from "@/lib/status";
 import { getRetentionReviewDate, RETENTION_YEARS } from "@/lib/retention";
+import { getNextReviewDue, isReviewOverdue } from "@/lib/reviewReminder";
 import { getActivityLog } from "@/lib/activityLog";
+import { MarkReviewedButton } from "@/components/detail/MarkReviewedButton";
 import {
   customerTypeLabels,
   customerStatusLabels,
@@ -111,6 +114,9 @@ export default async function CddDetailPage({
   const isHighRisk = riskCategory === "TINGGI";
   const eddDone = !!customer.highRiskAdditionalInfo;
   const retentionReviewDate = getRetentionReviewDate(customer.createdAt);
+  const reviewAnchorDate = customer.lastReviewedAt ?? customer.createdAt;
+  const nextReviewDue = getNextReviewDue(reviewAnchorDate, riskCategory);
+  const reviewOverdue = isReviewOverdue(reviewAnchorDate, riskCategory, new Date());
 
   return (
     <div className="space-y-6">
@@ -136,6 +142,18 @@ export default async function CddDetailPage({
             Tinjau retensi data pada {formatDate(retentionReviewDate)} (FR-5,
             asumsi {RETENTION_YEARS} tahun — konfirmasi ke penasihat hukum)
           </p>
+          <p
+            className={
+              "mt-0.5 flex items-center gap-2 text-xs " +
+              (reviewOverdue ? "text-red-600 font-medium" : "text-gray-400")
+            }
+          >
+            <span>
+              Tinjau ulang berikutnya (PMPJ): {formatDate(nextReviewDue)}
+              {reviewOverdue ? " — jatuh tempo" : ""}
+            </span>
+            <MarkReviewedButton customerId={customer.id} />
+          </p>
         </div>
         <div className="flex shrink-0 gap-2">
           <Link
@@ -155,6 +173,14 @@ export default async function CddDetailPage({
       </div>
 
       <CompletionChecklist breakdown={breakdown} />
+
+      {customer.isLtkm && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+          Ditandai sebagai LTKM (Laporan Transaksi Keuangan Mencurigakan) —
+          lihat bagian &quot;Pelaporan LTKM&quot; di bawah untuk catatan
+          konteksnya.
+        </div>
+      )}
 
       {businessSectorEmpty && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -531,6 +557,12 @@ export default async function CddDetailPage({
           </div>
         </section>
       )}
+
+      <LtkmPanel
+        customerId={customer.id}
+        initialIsLtkm={customer.isLtkm}
+        initialNotes={customer.ltkmNotes}
+      />
 
       <ActivityLogSection entries={activityLog} />
     </div>

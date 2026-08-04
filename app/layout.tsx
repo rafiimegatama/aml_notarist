@@ -53,6 +53,9 @@ export default function RootLayout({
               <Link href="/admin/retensi" className="hover:text-gray-900">
                 Retensi Data
               </Link>
+              <Link href="/admin/ltkm" className="hover:text-gray-900">
+                Laporan LTKM
+              </Link>
             </nav>
           </div>
         </header>

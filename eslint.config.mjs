@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Isolated git worktrees created for parallel background agents (each
+    // has its own .next/ build output) — not part of the actual codebase.
+    ".claude/worktrees/**",
   ]),
 ]);
 

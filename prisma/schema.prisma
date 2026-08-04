@@ -142,11 +142,14 @@ enum PenghasilanBulananEdd {
 // ============================================================
 
 model Customer {
-  id        String         @id @default(cuid())
-  type      CustomerType
-  status    CustomerStatus @default(DRAFT)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  type           CustomerType
+  status         CustomerStatus @default(DRAFT)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  lastReviewedAt DateTime? // FR-7 — null = belum pernah ditinjau ulang sejak dibuat
+  isLtkm         Boolean        @default(false) // FR-8 — ditandai manual oleh notaris, bukan otomatis
+  ltkmNotes      String? // FR-8 — catatan alasan/konteks, dipakai saat menyiapkan submission goAML manual
 
   corporateDetail         CorporateDetail?
   individualDetail        IndividualDetail?
