@@ -9,6 +9,7 @@ import { CustomerType } from "@/lib/generated/prisma/enums";
 import { extractTextFromImage } from "@/lib/ocr/runOcr";
 import { extractFieldGuesses, LABEL_MAPS, type FieldGuesses } from "@/lib/ocr/extractFields";
 import { UPLOAD_DIR } from "@/lib/storage";
+import { backupDocumentToDrive } from "@/lib/actions/driveBackup";
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB — cukup untuk foto kamera HP resolusi tinggi
 const ALLOWED_MIME: Record<string, string> = {
@@ -69,6 +70,10 @@ export async function uploadAndExtractDocument(
       fieldGuesses,
     },
   });
+
+  // FR-1.4 — fire-and-forget, tidak di-await: backup Drive tidak boleh
+  // menunda respons OCR yang sedang ditunggu notaris di form.
+  void backupDocumentToDrive(doc.id);
 
   return { success: true, draftUploadId: doc.id, rawText, fieldGuesses };
 }

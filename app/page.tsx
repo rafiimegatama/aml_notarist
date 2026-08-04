@@ -14,6 +14,11 @@ import {
 } from "@/lib/labels";
 import { formatDate } from "@/components/detail/DetailPrimitives";
 import { ScanUploadPanel } from "@/components/upload/ScanUploadPanel";
+import {
+  computeCompletionBreakdown,
+  STATUS_QUERY_INCLUDE,
+  type CompletionBreakdown,
+} from "@/lib/status";
 
 const typeOptions = labelOptions(customerTypeLabels);
 const statusOptions = labelOptions(customerStatusLabels);
@@ -21,6 +26,18 @@ const riskCategoryOptions = labelOptions(riskCategoryLabels);
 
 function firstOrUndefined(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
+}
+
+// FR-4 — dipakai untuk tooltip "Menunggu: ..." di baris DRAFT pada dashboard.
+function missingSectionsLabel(breakdown: CompletionBreakdown): string {
+  const missing: string[] = [];
+  if (breakdown.cddDasar !== "filled") missing.push("CDD Dasar");
+  if (breakdown.powerOfAttorney === "not_filled") missing.push("Kuasa Korporasi");
+  if (breakdown.notaryService !== "filled") missing.push("Info Jasa Notaris");
+  if (breakdown.riskAssessment !== "scored") missing.push("Risk Assessment");
+  if (breakdown.edd === "required_not_filled") missing.push("EDD");
+  if (breakdown.edd === "manual_required") missing.push("EDD (proses manual di luar aplikasi)");
+  return missing.length ? `Menunggu: ${missing.join(", ")}` : "";
 }
 
 export default async function DashboardPage({
@@ -67,12 +84,7 @@ export default async function DashboardPage({
 
   const customers = await prisma.customer.findMany({
     where,
-    include: {
-      corporateDetail: true,
-      individualDetail: true,
-      legalArrangementDetail: true,
-      riskAssessment: true,
-    },
+    include: STATUS_QUERY_INCLUDE,
     orderBy: { createdAt: "desc" },
   });
 
@@ -253,15 +265,18 @@ export default async function DashboardPage({
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={
-                        c.status === "COMPLETE"
-                          ? "font-medium text-green-700"
-                          : "font-medium text-amber-700"
-                      }
-                    >
-                      {customerStatusLabels[c.status]}
-                    </span>
+                    {c.status === "COMPLETE" ? (
+                      <span className="font-medium text-green-700">
+                        {customerStatusLabels[c.status]}
+                      </span>
+                    ) : (
+                      <span
+                        className="font-medium text-amber-700 underline decoration-dotted"
+                        title={missingSectionsLabel(computeCompletionBreakdown(c))}
+                      >
+                        {customerStatusLabels[c.status]}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {formatDate(c.createdAt)}

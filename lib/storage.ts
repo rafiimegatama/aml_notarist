@@ -7,3 +7,15 @@ export const DB_PATH = path.join(process.cwd(), "prisma", "dev.db");
 // diunduh via app/api/backup/[filename].
 export const BACKUP_DIR = path.join(process.cwd(), "storage", "backups");
 export const BACKUP_META_PATH = path.join(BACKUP_DIR, "meta.json");
+
+// FR-1.2 — cermin lokal dev.db + uploads, ditulis ulang tiap sinkronisasi
+// HDD eksternal berhasil (lib/hddSync.ts). Dipakai untuk catatan "sinkronisasi
+// terakhir" di UI tanpa perlu mount drive eksternal untuk membacanya.
+export const HDD_SYNC_META_PATH = path.join(
+  process.cwd(),
+  "storage",
+  "hdd-sync-meta.json"
+);
+
+// FR-11 — salinan PDF otomatis saat status Customer berubah ke COMPLETE.
+export const PDF_ARCHIVE_DIR = path.join(process.cwd(), "storage", "archive");

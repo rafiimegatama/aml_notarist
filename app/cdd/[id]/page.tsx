@@ -8,6 +8,8 @@ import {
   formatDate,
 } from "@/components/detail/DetailPrimitives";
 import { ExportToSheetButton } from "@/components/detail/ExportToSheetButton";
+import { CompletionChecklist } from "@/components/detail/CompletionChecklist";
+import { getCompletionBreakdown } from "@/lib/status";
 import {
   customerTypeLabels,
   customerStatusLabels,
@@ -91,6 +93,8 @@ export default async function CddDetailPage({
 
   if (!customer) notFound();
 
+  const breakdown = await getCompletionBreakdown(id);
+
   const displayName =
     customer.corporateDetail?.namaKorporasi ??
     customer.individualDetail?.namaLengkap ??
@@ -141,6 +145,8 @@ export default async function CddDetailPage({
         </div>
       </div>
 
+      <CompletionChecklist breakdown={breakdown} />
+
       {businessSectorEmpty && (
         <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Skor Bisnis (RefBusinessSectorScore) belum tersedia — Total Nilai
@@ -150,7 +156,10 @@ export default async function CddDetailPage({
       )}
 
       {isHighRisk && customer.type === "PERORANGAN" && !eddDone && (
-        <div className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div
+          id="edd"
+          className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
           <span>
             Kategori Risiko <strong>Tinggi</strong> — Informasi Tambahan (EDD)
             wajib diisi sebelum CDD ini dianggap lengkap.
@@ -165,18 +174,22 @@ export default async function CddDetailPage({
       )}
 
       {isHighRisk && customer.type !== "PERORANGAN" && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          Kategori Risiko <strong>Tinggi</strong> untuk{" "}
-          {customerTypeLabels[customer.type]} — form EDD Korporasi/Institusi
-          belum tersedia (lihat reference-data.md bagian 9). Proses manual
-          diperlukan; status tidak akan otomatis menjadi Lengkap.
+        <div
+          id="edd"
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          EDD Korporasi/Legal Arrangement belum tersedia di sistem — proses
+          ini wajib ditangani manual di luar aplikasi sampai form EDD resmi
+          tersedia (Known Gap #2, lihat reference-data.md bagian 9 dan PRD
+          Fase 2 Bagian 7). Status CDD ini tidak akan otomatis menjadi
+          Lengkap.
         </div>
       )}
 
       {/* ============ KORPORASI ============ */}
       {customer.type === "KORPORASI" && customer.corporateDetail && (
         <>
-          <DetailSection title="A. Informasi Dasar Pengguna Jasa">
+          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa">
             <DetailItem label="Nama Korporasi" value={customer.corporateDetail.namaKorporasi} />
             <DetailItem label="Bentuk Korporasi" value={customer.corporateDetail.bentukKorporasi} />
             <DetailItem label="No. SK Pengesahan" value={customer.corporateDetail.noSkPengesahan} />
@@ -203,7 +216,7 @@ export default async function CddDetailPage({
       {/* ============ PERORANGAN ============ */}
       {customer.type === "PERORANGAN" && customer.individualDetail && (
         <>
-          <DetailSection title="A. Informasi Dasar Pengguna Jasa">
+          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa">
             <DetailItem label="Nama Lengkap" value={customer.individualDetail.namaLengkap} />
             <DetailItem label="Nama Alias" value={customer.individualDetail.namaAlias} />
             <DetailItem label="Jenis Identitas" value={jenisIdentitasLabels[customer.individualDetail.jenisIdentitas]} />
@@ -262,7 +275,7 @@ export default async function CddDetailPage({
       {/* ============ LEGAL ARRANGEMENT ============ */}
       {customer.type === "LEGAL_ARRANGEMENT" && customer.legalArrangementDetail && (
         <>
-          <DetailSection title="A. Informasi Dasar Pengguna Jasa">
+          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa">
             <DetailItem label="Nama" value={customer.legalArrangementDetail.nama} />
             <DetailItem
               label="Jenis Identitas"
@@ -295,6 +308,7 @@ export default async function CddDetailPage({
 
       {/* ============ Beneficial Owners (semua tipe) ============ */}
       <DetailSection
+        id="beneficial-owner"
         title="Informasi Pemilik Manfaat (Beneficial Owner)"
         description={`${customer.beneficialOwners.length} orang`}
       >
@@ -327,7 +341,7 @@ export default async function CddDetailPage({
 
       {/* ============ Power of Attorney (Korporasi) ============ */}
       {customer.type === "KORPORASI" && customer.powerOfAttorney && (
-        <DetailSection title="D. Informasi Kuasa Korporasi">
+        <DetailSection id="power-of-attorney" title="D. Informasi Kuasa Korporasi">
           <DetailItem label="Hubungan Hukum Pengguna Jasa" value={hubunganHukumPengurusLabels[customer.powerOfAttorney.hubunganHukum]} />
           <DetailItem label="No. Surat Kuasa" value={customer.powerOfAttorney.noSuratKuasa} />
           <DetailItem label="Tanggal Surat Kuasa" value={formatDate(customer.powerOfAttorney.tanggalSuratKuasa)} />
@@ -384,14 +398,14 @@ export default async function CddDetailPage({
 
       {/* ============ Notary Service (semua tipe) ============ */}
       {customer.notaryService && (
-        <DetailSection title="Informasi Jasa yang Diberikan">
+        <DetailSection id="notary-service" title="Informasi Jasa yang Diberikan">
           <DetailItem label="Nama Notaris" value={customer.notaryService.namaNotaris} />
           <DetailItem label="Jasa yang Diberikan" value={customer.notaryService.jasaYangDiberikan} />
         </DetailSection>
       )}
 
       {/* ============ Risk Assessment ============ */}
-      <DetailSection title="Risk Assessment — Analisa PEP & Skoring">
+      <DetailSection id="risk-assessment" title="Risk Assessment — Analisa PEP & Skoring">
         <DetailItem label="Apakah Pengguna Jasa adalah PEP?" value={yesNo(ra?.isPep)} />
         <DetailItem label="Nama Lengkap PEP" value={ra?.namaLengkapPep} />
         <DetailItem label="PEP Lokal atau Asing" value={ra?.pepAsalNegara ? pepAsalNegaraLabels[ra.pepAsalNegara] : null} />
@@ -430,7 +444,7 @@ export default async function CddDetailPage({
 
       {/* ============ EDD ============ */}
       {customer.highRiskAdditionalInfo && (
-        <DetailSection title="Informasi Tambahan — Berisiko Tinggi (EDD)">
+        <DetailSection id="edd" title="Informasi Tambahan — Berisiko Tinggi (EDD)">
           <DetailItem label="Nama Lengkap" value={customer.highRiskAdditionalInfo.namaLengkap} />
           <DetailItem
             label="Jenis Identitas"
