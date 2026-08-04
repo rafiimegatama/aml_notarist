@@ -50,6 +50,9 @@ export default function RootLayout({
               <Link href="/admin/backup" className="hover:text-gray-900">
                 Backup Data
               </Link>
+              <Link href="/admin/retensi" className="hover:text-gray-900">
+                Retensi Data
+              </Link>
             </nav>
           </div>
         </header>

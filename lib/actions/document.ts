@@ -49,8 +49,11 @@ export async function uploadAndExtractDocument(
   await writeFile(path.join(UPLOAD_DIR, storedName), buffer);
 
   let rawText = "";
+  let words: Awaited<ReturnType<typeof extractTextFromImage>>["words"] = [];
   try {
-    rawText = await extractTextFromImage(path.join(UPLOAD_DIR, storedName));
+    const ocrResult = await extractTextFromImage(path.join(UPLOAD_DIR, storedName));
+    rawText = ocrResult.text;
+    words = ocrResult.words;
   } catch (err) {
     // OCR gagal (mis. file rusak) tidak boleh memblokir notaris — lanjut
     // dengan form kosong, file scan tetap tersimpan sebagai lampiran.
@@ -58,7 +61,7 @@ export async function uploadAndExtractDocument(
   }
 
   const labelMap = LABEL_MAPS[formType];
-  const fieldGuesses = rawText ? extractFieldGuesses(rawText, labelMap) : {};
+  const fieldGuesses = rawText ? extractFieldGuesses(rawText, labelMap, words) : {};
 
   const doc = await prisma.customerDocument.create({
     data: {

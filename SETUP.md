@@ -31,3 +31,39 @@ Setelah 3 kali PIN salah berurutan, percobaan berikutnya diblokir selama 5
 menit (lihat konstanta `LOCKOUT_THRESHOLD` dan `LOCKOUT_DURATION_MINUTES` di
 `lib/auth.ts`). Ini juga mereset otomatis begitu aplikasi (proses `next
 dev`/`next start`) di-restart.
+
+## Keamanan Data — Rekomendasi Enkripsi (FR-5)
+
+Aplikasi ini menyimpan data pribadi sensitif (scan KTP/NIK, data penghasilan)
+yang tunduk pada UU No. 27/2022 (UU PDP) — Pasal 39 ayat (1) mewajibkan
+"langkah teknis dan organisasi yang memadai" untuk melindungi data pribadi.
+Rekomendasi di bawah ini **didokumentasikan, bukan diimplementasikan** di
+codebase — enkripsi disk/OS di luar jangkauan aplikasi Next.js ini, dan
+keputusan mana yang dijalankan ada di tangan notaris/kantor, bukan default
+otomatis dari kode.
+
+1. **Lantai (wajib, murah, langsung bisa dilakukan hari ini):** aktifkan
+   BitLocker (Windows) full-disk encryption di PC tempat aplikasi ini
+   berjalan. Ini melindungi `prisma/dev.db` dan `storage/uploads/` kalau PC
+   atau harddisknya dicuri/hilang.
+2. **Lebih baik (opsional, butuh kerja tambahan):** enkripsi level-aplikasi
+   khusus untuk `storage/uploads/` — enkripsi saat file ditulis di
+   `uploadAndExtractDocument` (`lib/actions/document.ts`), dekripsi saat
+   dibaca di `app/api/documents/[id]/route.ts`. Belum dikerjakan di fase ini
+   — kalau mau dibangun, ini kandidat Fase berikutnya.
+3. **Backup ikut kewajiban yang sama.** Begitu FR-1.2/1.3/1.4 (HDD/Sheets/
+   Drive) aktif, foto KTP yang tidak terenkripsi yang tersimpan di Google
+   Drive pribadi berpotensi jadi celah kebocoran yang LEBIH besar daripada
+   file aslinya. Pakai akun Google khusus (bukan akun pribadi notaris)
+   untuk backup, kunci akses sharing-nya, dan pertimbangkan enkripsi
+   sebelum upload.
+4. **Retensi vs. penghapusan.** Data CDD terstruktur (nama, No. Identitas,
+   tanggal) kemungkinan besar yang benar-benar wajib disimpan sesuai
+   ketentuan retensi (lihat `lib/retention.ts`) — apakah foto scan asli
+   perlu masa retensi yang sama atau bisa dihapus lebih cepat setelah
+   datanya terverifikasi & tersimpan, adalah pertanyaan untuk penasihat
+   hukum, bukan asumsi default aplikasi ini.
+
+Sumber: PRD-Notary-CDD-Phase2-Improvements.md Bagian 4 (FR-5) & Lampiran B —
+ini komentar sekunder atas regulasi, bukan teks primer; verifikasi ke sumber
+primer/penasihat hukum sebelum dijadikan kebijakan final.

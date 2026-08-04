@@ -20,8 +20,15 @@ import {
 import { BeneficialOwnerArrayField } from "@/components/forms/BeneficialOwnerArrayField";
 import { NotaryServiceFields } from "@/components/forms/NotaryServiceFields";
 import { OcrAssistBanner } from "@/components/forms/OcrAssistBanner";
+import { OcrReviewGate } from "@/components/forms/OcrReviewGate";
+import { OcrCroppedSnippet } from "@/components/forms/OcrCroppedSnippet";
+import {
+  OcrFieldProvider,
+  useOcrUnverifiedPaths,
+} from "@/components/forms/OcrFieldContext";
 import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import { applyFieldGuesses } from "@/lib/ocr/applyFieldGuesses";
+import { LABEL_MAPS } from "@/lib/ocr/extractFields";
 import {
   jenisIdentitasLabels,
   hubunganHukumPengurusLabels,
@@ -77,7 +84,22 @@ export function CorporateForm({
 }: {
   ocrDraft?: DraftDocument | null;
 }) {
+  return (
+    <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
+      <CorporateFormInner ocrDraft={ocrDraft} />
+    </OcrFieldProvider>
+  );
+}
+
+function CorporateFormInner({
+  ocrDraft,
+}: {
+  ocrDraft?: DraftDocument | null;
+}) {
   const [formError, setFormError] = useState<string | null>(null);
+  const [showOcrGate, setShowOcrGate] = useState(false);
+  const [bypassOcrGate, setBypassOcrGate] = useState(false);
+  const ocrGate = useOcrUnverifiedPaths();
   const {
     register,
     control,
@@ -113,8 +135,17 @@ export function CorporateForm({
     }
   });
 
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (ocrGate && ocrGate.unverifiedPaths.length > 0 && !bypassOcrGate) {
+      e.preventDefault();
+      setShowOcrGate(true);
+      return;
+    }
+    onSubmit(e);
+  }
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={handleFormSubmit} className="space-y-6">
       {formError && (
         <div
           role="alert"
@@ -126,26 +157,59 @@ export function CorporateForm({
 
       {ocrDraft && <OcrAssistBanner rawText={ocrDraft.rawText} />}
 
+      {showOcrGate && ocrGate && (
+        <OcrReviewGate
+          labels={ocrGate.unverifiedPaths.map(
+            (p) => LABEL_MAPS.KORPORASI[p]?.[0] ?? p
+          )}
+          onReviewNow={() => {
+            setShowOcrGate(false);
+            setFocus(ocrGate.unverifiedPaths[0] as never);
+          }}
+          onConfirmAllAndSave={() => {
+            ocrGate.confirmAll();
+            setShowOcrGate(false);
+            onSubmit();
+          }}
+          onProceedAnyway={() => {
+            setBypassOcrGate(true);
+            setShowOcrGate(false);
+            onSubmit();
+          }}
+        />
+      )}
+
       <SectionCard
         title="A. Informasi Dasar Pengguna Jasa"
         description="CDD Korporasi — Section 1.A"
       >
-        <TextField
-          label="Nama Korporasi"
-          required
-          error={errors.corporateDetail?.namaKorporasi}
-          registration={register("corporateDetail.namaKorporasi")}
-        />
+        <div>
+          <TextField
+            label="Nama Korporasi"
+            required
+            error={errors.corporateDetail?.namaKorporasi}
+            registration={register("corporateDetail.namaKorporasi")}
+            ocrPath="corporateDetail.namaKorporasi"
+          />
+          {ocrDraft && (
+            <OcrCroppedSnippet
+              documentId={ocrDraft.id}
+              bbox={ocrDraft.fieldGuesses["corporateDetail.namaKorporasi"]?.bbox ?? null}
+            />
+          )}
+        </div>
         <TextField
           label="Bentuk Korporasi"
           hint="mis. PT, CV, Yayasan, Koperasi"
           error={errors.corporateDetail?.bentukKorporasi}
           registration={register("corporateDetail.bentukKorporasi")}
+          ocrPath="corporateDetail.bentukKorporasi"
         />
         <TextField
           label="No. SK Pengesahan"
           error={errors.corporateDetail?.noSkPengesahan}
           registration={register("corporateDetail.noSkPengesahan")}
+          ocrPath="corporateDetail.noSkPengesahan"
         />
         <TextField
           label="Tanggal SK Pengesahan"
@@ -157,6 +221,7 @@ export function CorporateForm({
           label="No. Ijin Usaha"
           error={errors.corporateDetail?.noIjinUsaha}
           registration={register("corporateDetail.noIjinUsaha")}
+          ocrPath="corporateDetail.noIjinUsaha"
         />
         <TextField
           label="Tanggal Ijin Usaha"
@@ -168,17 +233,20 @@ export function CorporateForm({
           label="NPWP"
           error={errors.corporateDetail?.npwp}
           registration={register("corporateDetail.npwp")}
+          ocrPath="corporateDetail.npwp"
         />
         <TextField
           label="No. Akta Pendirian / Akta Kepengurusan Terakhir"
           error={errors.corporateDetail?.noAktaPendirian}
           registration={register("corporateDetail.noAktaPendirian")}
+          ocrPath="corporateDetail.noAktaPendirian"
         />
         <FullRow>
           <TextAreaField
             label="Alamat Korporasi sesuai Akta"
             error={errors.corporateDetail?.alamatSesuaiAkta}
             registration={register("corporateDetail.alamatSesuaiAkta")}
+            ocrPath="corporateDetail.alamatSesuaiAkta"
           />
         </FullRow>
         <FullRow>
@@ -186,23 +254,27 @@ export function CorporateForm({
             label="Alamat Lokasi Usaha"
             error={errors.corporateDetail?.alamatLokasiUsaha}
             registration={register("corporateDetail.alamatLokasiUsaha")}
+            ocrPath="corporateDetail.alamatLokasiUsaha"
           />
         </FullRow>
         <TextField
           label="Nomor Telepon Korporasi"
           error={errors.corporateDetail?.nomorTelepon}
           registration={register("corporateDetail.nomorTelepon")}
+          ocrPath="corporateDetail.nomorTelepon"
         />
         <TextField
           label="Nomor Faksimili"
           error={errors.corporateDetail?.nomorFaksimili}
           registration={register("corporateDetail.nomorFaksimili")}
+          ocrPath="corporateDetail.nomorFaksimili"
         />
         <TextField
           label="Bidang Usaha"
           hint="Sama dengan Bidang Usaha di Informasi Kekayaan Korporasi (satu field)"
           error={errors.corporateDetail?.bidangUsaha}
           registration={register("corporateDetail.bidangUsaha")}
+          ocrPath="corporateDetail.bidangUsaha"
         />
       </SectionCard>
 
@@ -214,17 +286,20 @@ export function CorporateForm({
           label="Sumber Dana"
           error={errors.corporateDetail?.sumberDana}
           registration={register("corporateDetail.sumberDana")}
+          ocrPath="corporateDetail.sumberDana"
         />
         <TextField
           label="Pendapatan Rata-Rata per Tahun"
           error={errors.corporateDetail?.pendapatanRataRata}
           registration={register("corporateDetail.pendapatanRataRata")}
+          ocrPath="corporateDetail.pendapatanRataRata"
         />
         <FullRow>
           <TextField
             label="Tujuan Transaksi"
             error={errors.corporateDetail?.tujuanTransaksi}
             registration={register("corporateDetail.tujuanTransaksi")}
+            ocrPath="corporateDetail.tujuanTransaksi"
           />
         </FullRow>
       </SectionCard>

@@ -10,6 +10,7 @@ import {
 import { ExportToSheetButton } from "@/components/detail/ExportToSheetButton";
 import { CompletionChecklist } from "@/components/detail/CompletionChecklist";
 import { getCompletionBreakdown } from "@/lib/status";
+import { getRetentionReviewDate, RETENTION_YEARS } from "@/lib/retention";
 import {
   customerTypeLabels,
   customerStatusLabels,
@@ -106,6 +107,7 @@ export default async function CddDetailPage({
   const riskCategory = ra?.riskCategory ?? null;
   const isHighRisk = riskCategory === "TINGGI";
   const eddDone = !!customer.highRiskAdditionalInfo;
+  const retentionReviewDate = getRetentionReviewDate(customer.createdAt);
 
   return (
     <div className="space-y-6">
@@ -126,6 +128,10 @@ export default async function CddDetailPage({
               {customerStatusLabels[customer.status]}
             </span>{" "}
             · Dibuat {formatDate(customer.createdAt)}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-400">
+            Tinjau retensi data pada {formatDate(retentionReviewDate)} (FR-5,
+            asumsi {RETENTION_YEARS} tahun — konfirmasi ke penasihat hukum)
           </p>
         </div>
         <div className="flex shrink-0 gap-2">

@@ -1,7 +1,45 @@
 import { ReactNode } from "react";
 import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
+import { useOcrFieldState } from "@/components/forms/OcrFieldContext";
 
 type Registration = UseFormRegisterReturn;
+
+// FR-3 (Must) — three-state styling: kosong (default), Suggested-belum
+// diverifikasi (dashed amber/merah + tag "OCR"), Confirmed (normal, begitu
+// notaris fokus ke field itu). LOW_CONFIDENCE_THRESHOLD murni ambang UX,
+// bukan dari regulasi — confidence Tesseract di bawah ini ditampilkan lebih
+// mencolok (merah, bukan amber).
+const LOW_CONFIDENCE_THRESHOLD = 70;
+
+const DEFAULT_BORDER_CLASS = "border border-gray-300";
+
+function ocrBorderClass(ocr: ReturnType<typeof useOcrFieldState>): string {
+  if (!ocr || ocr.state === "confirmed") return DEFAULT_BORDER_CLASS;
+  const lowConfidence =
+    ocr.confidence !== null && ocr.confidence < LOW_CONFIDENCE_THRESHOLD;
+  return lowConfidence
+    ? "border-2 border-dashed border-red-400 bg-red-50/40"
+    : "border-2 border-dashed border-amber-400 bg-amber-50/40";
+}
+
+function OcrBadge({ ocr }: { ocr: ReturnType<typeof useOcrFieldState> }) {
+  if (!ocr || ocr.state !== "suggested") return null;
+  const lowConfidence =
+    ocr.confidence !== null && ocr.confidence < LOW_CONFIDENCE_THRESHOLD;
+  return (
+    <span
+      className={
+        "ml-1.5 rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+        (lowConfidence
+          ? "bg-red-100 text-red-700"
+          : "bg-amber-100 text-amber-700")
+      }
+      title="Diisi otomatis dari OCR — belum diverifikasi. Klik/isi field ini untuk menandai sudah diperiksa."
+    >
+      OCR
+    </span>
+  );
+}
 
 function ErrorText({ id, error }: { id: string; error?: FieldError }) {
   if (!error) return null;
@@ -18,6 +56,7 @@ function Wrapper({
   required,
   error,
   hint,
+  badge,
   children,
 }: {
   htmlFor: string;
@@ -25,6 +64,7 @@ function Wrapper({
   required?: boolean;
   error?: FieldError;
   hint?: string;
+  badge?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -40,6 +80,7 @@ function Wrapper({
             *
           </span>
         )}
+        {badge}
       </label>
       {hint && (
         <p id={`${htmlFor}-hint`} className="text-xs text-gray-500">
@@ -52,8 +93,11 @@ function Wrapper({
   );
 }
 
+// "border" & warna border sengaja dipisah dari sini — ocrBorderClass()
+// mengganti keduanya sekaligus supaya tidak ada dua utility warna border
+// yang bersaing di className yang sama (mis. border-gray-300 vs border-red-400).
 const inputClass =
-  "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500";
+  "block w-full rounded-md px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500";
 
 function describedBy(
   id: string,
@@ -74,6 +118,7 @@ export function TextField({
   type = "text",
   placeholder,
   disabled,
+  ocrPath,
 }: {
   label: string;
   required?: boolean;
@@ -83,7 +128,10 @@ export function TextField({
   type?: string;
   placeholder?: string;
   disabled?: boolean;
+  /** FR-3 — dot-path field ini di FieldGuesses (lib/ocr/extractFields.ts), kalau field ini bisa diisi OCR. */
+  ocrPath?: string;
 }) {
+  const ocr = useOcrFieldState(ocrPath);
   return (
     <Wrapper
       htmlFor={registration.name}
@@ -91,16 +139,18 @@ export function TextField({
       required={required}
       error={error}
       hint={hint}
+      badge={<OcrBadge ocr={ocr} />}
     >
       <input
         id={registration.name}
         type={type}
-        className={inputClass}
+        className={`${inputClass} ${ocrBorderClass(ocr)}`}
         placeholder={placeholder}
         disabled={disabled}
         aria-invalid={!!error}
         aria-describedby={describedBy(registration.name, { hint, error })}
         {...registration}
+        onFocus={ocr?.onFocus}
       />
     </Wrapper>
   );
@@ -113,6 +163,7 @@ export function TextAreaField({
   hint,
   registration,
   rows = 3,
+  ocrPath,
 }: {
   label: string;
   required?: boolean;
@@ -120,7 +171,10 @@ export function TextAreaField({
   hint?: string;
   registration: Registration;
   rows?: number;
+  /** FR-3 — dot-path field ini di FieldGuesses (lib/ocr/extractFields.ts), kalau field ini bisa diisi OCR. */
+  ocrPath?: string;
 }) {
+  const ocr = useOcrFieldState(ocrPath);
   return (
     <Wrapper
       htmlFor={registration.name}
@@ -128,14 +182,16 @@ export function TextAreaField({
       required={required}
       error={error}
       hint={hint}
+      badge={<OcrBadge ocr={ocr} />}
     >
       <textarea
         id={registration.name}
         rows={rows}
-        className={inputClass}
+        className={`${inputClass} ${ocrBorderClass(ocr)}`}
         aria-invalid={!!error}
         aria-describedby={describedBy(registration.name, { hint, error })}
         {...registration}
+        onFocus={ocr?.onFocus}
       />
     </Wrapper>
   );
@@ -170,7 +226,7 @@ export function SelectField({
     >
       <select
         id={registration.name}
-        className={inputClass}
+        className={`${inputClass} ${DEFAULT_BORDER_CLASS}`}
         disabled={disabled}
         aria-invalid={!!error}
         aria-describedby={describedBy(registration.name, { hint, error })}

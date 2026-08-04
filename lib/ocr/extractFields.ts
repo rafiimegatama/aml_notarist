@@ -1,6 +1,17 @@
 import { CustomerType } from "@/lib/generated/prisma/enums";
+import type { OcrWord } from "@/lib/ocr/runOcr";
+import { isValidNpwpFormat } from "@/lib/validations";
 
-export type FieldGuesses = Record<string, string>;
+export type Bbox = { x0: number; y0: number; x1: number; y1: number };
+
+// FR-3 (Should) — confidence & bbox null kalau tidak ada word Tesseract yang
+// bisa dicocokkan ke rentang karakter guess ini (lihat mapWordsToRange).
+export type FieldGuess = {
+  value: string;
+  confidence: number | null;
+  bbox: Bbox | null;
+};
+export type FieldGuesses = Record<string, FieldGuess>;
 
 // Peta label -> path field (dot-path react-hook-form) per tipe CDD.
 // HANYA berisi field bertipe teks bebas (bukan dropdown/enum, bukan tanggal,
@@ -77,16 +88,54 @@ function escapeRegExp(s: string): string {
 const MIN_VALUE_LENGTH = 2;
 const MAX_VALUE_LENGTH = 200;
 
+/**
+ * Tesseract tidak memberi offset karakter word terhadap `text` gabungan —
+ * dicari ulang di sini dengan pencarian maju (cursor tidak pernah mundur)
+ * karena `text` memang hasil penggabungan word-word ini apa adanya oleh
+ * Tesseract. Word yang tidak ketemu (mis. karena whitespace/normalisasi
+ * beda) dilewati — hanya mengurangi presisi confidence/bbox, bukan error.
+ */
+function computeWordOffsets(
+  normalized: string,
+  words: OcrWord[]
+): Array<{ start: number; end: number; word: OcrWord }> {
+  const offsets: Array<{ start: number; end: number; word: OcrWord }> = [];
+  let cursor = 0;
+  for (const word of words) {
+    if (!word.text) continue;
+    const idx = normalized.indexOf(word.text, cursor);
+    if (idx === -1) continue;
+    offsets.push({ start: idx, end: idx + word.text.length, word });
+    cursor = idx + word.text.length;
+  }
+  return offsets;
+}
+
+function mergeBbox(a: Bbox, b: Bbox): Bbox {
+  return {
+    x0: Math.min(a.x0, b.x0),
+    y0: Math.min(a.y0, b.y0),
+    x1: Math.max(a.x1, b.x1),
+    y1: Math.max(a.y1, b.y1),
+  };
+}
+
 // Best-effort: cari kemunculan pertama tiap label di teks OCR, lalu ambil
 // teks di antara akhir label tsb sampai label berikutnya (atau baris kosong)
 // sebagai nilai. Ini heuristik sederhana, BUKAN parser formulir yang presisi
 // — hasilnya wajib direview manual oleh notaris (lihat OcrAssistBanner).
+// `words` (opsional) — dari extractTextFromImage; kalau diberikan, tiap
+// guess juga dilengkapi confidence rata-rata & bbox gabungan word yang
+// overlap dengan rentang teks guess tsb, dipakai untuk styling tiga-state
+// (FR-3) dan cuplikan gambar sumber di field identitas kritis.
 export function extractFieldGuesses(
   rawText: string,
-  labelMap: Record<string, string[]>
+  labelMap: Record<string, string[]>,
+  words: OcrWord[] = []
 ): FieldGuesses {
   const normalized = rawText.replace(/\r\n/g, "\n");
   const lower = normalized.toLowerCase();
+  const wordOffsets = computeWordOffsets(normalized, words);
 
   type LabelMatch = { field: string; start: number; end: number };
   const matches: LabelMatch[] = [];
@@ -112,13 +161,36 @@ export function extractFieldGuesses(
     let value = normalized.slice(current.end, sliceEnd);
 
     const paragraphBreak = value.indexOf("\n\n");
+    const rangeEnd = paragraphBreak !== -1 ? current.end + paragraphBreak : sliceEnd;
     if (paragraphBreak !== -1) value = value.slice(0, paragraphBreak);
 
     value = value.replace(/^[\s:.\-–—]+/, "").replace(/\s+/g, " ").trim();
 
-    if (value.length >= MIN_VALUE_LENGTH && value.length <= MAX_VALUE_LENGTH) {
-      guesses[current.field] = value;
+    if (value.length < MIN_VALUE_LENGTH || value.length > MAX_VALUE_LENGTH) {
+      continue;
     }
+    if (current.field.endsWith(".npwp") && !isValidNpwpFormat(value)) {
+      continue;
+    }
+
+    // Rentang dipakai untuk overlap word longgar (batas mentah sebelum
+    // trim) — cukup untuk sinyal confidence/bbox best-effort, tidak perlu
+    // presisi karakter-demi-karakter.
+    const overlapping = wordOffsets.filter(
+      (o) => o.start < rangeEnd && o.end > current.end
+    );
+    let confidence: number | null = null;
+    let bbox: Bbox | null = null;
+    if (overlapping.length > 0) {
+      confidence =
+        overlapping.reduce((sum, o) => sum + o.word.confidence, 0) /
+        overlapping.length;
+      bbox = overlapping
+        .map((o) => o.word.bbox)
+        .reduce((acc, b) => (acc ? mergeBbox(acc, b) : b), null as Bbox | null);
+    }
+
+    guesses[current.field] = { value, confidence, bbox };
   }
 
   return guesses;

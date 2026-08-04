@@ -20,8 +20,15 @@ import {
 import { BeneficialOwnerArrayField } from "@/components/forms/BeneficialOwnerArrayField";
 import { NotaryServiceFields } from "@/components/forms/NotaryServiceFields";
 import { OcrAssistBanner } from "@/components/forms/OcrAssistBanner";
+import { OcrReviewGate } from "@/components/forms/OcrReviewGate";
+import { OcrCroppedSnippet } from "@/components/forms/OcrCroppedSnippet";
+import {
+  OcrFieldProvider,
+  useOcrUnverifiedPaths,
+} from "@/components/forms/OcrFieldContext";
 import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import { applyFieldGuesses } from "@/lib/ocr/applyFieldGuesses";
+import { LABEL_MAPS } from "@/lib/ocr/extractFields";
 import {
   jenisIdentitasLabels,
   jenisKelaminLabels,
@@ -78,7 +85,22 @@ export function IndividualForm({
 }: {
   ocrDraft?: DraftDocument | null;
 }) {
+  return (
+    <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
+      <IndividualFormInner ocrDraft={ocrDraft} />
+    </OcrFieldProvider>
+  );
+}
+
+function IndividualFormInner({
+  ocrDraft,
+}: {
+  ocrDraft?: DraftDocument | null;
+}) {
   const [formError, setFormError] = useState<string | null>(null);
+  const [showOcrGate, setShowOcrGate] = useState(false);
+  const [bypassOcrGate, setBypassOcrGate] = useState(false);
+  const ocrGate = useOcrUnverifiedPaths();
   const {
     register,
     control,
@@ -126,8 +148,20 @@ export function IndividualForm({
     }
   });
 
+  // FR-3 (Must) — pre-submit review gate: interupsi submit pertama kalau
+  // masih ada field "Suggested — unverified", tapi dismissable (lihat
+  // OcrReviewGate) — bukan hard block.
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (ocrGate && ocrGate.unverifiedPaths.length > 0 && !bypassOcrGate) {
+      e.preventDefault();
+      setShowOcrGate(true);
+      return;
+    }
+    onSubmit(e);
+  }
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={handleFormSubmit} className="space-y-6">
       {formError && (
         <div
           role="alert"
@@ -139,16 +173,47 @@ export function IndividualForm({
 
       {ocrDraft && <OcrAssistBanner rawText={ocrDraft.rawText} />}
 
+      {showOcrGate && ocrGate && (
+        <OcrReviewGate
+          labels={ocrGate.unverifiedPaths.map(
+            (p) => LABEL_MAPS.PERORANGAN[p]?.[0] ?? p
+          )}
+          onReviewNow={() => {
+            setShowOcrGate(false);
+            setFocus(ocrGate.unverifiedPaths[0] as never);
+          }}
+          onConfirmAllAndSave={() => {
+            ocrGate.confirmAll();
+            setShowOcrGate(false);
+            onSubmit();
+          }}
+          onProceedAnyway={() => {
+            setBypassOcrGate(true);
+            setShowOcrGate(false);
+            onSubmit();
+          }}
+        />
+      )}
+
       <SectionCard
         title="A. Informasi Dasar Pengguna Jasa"
         description="CDD Perorangan — Section 2.A"
       >
-        <TextField
-          label="Nama Lengkap"
-          required
-          error={errors.individualDetail?.namaLengkap}
-          registration={register("individualDetail.namaLengkap")}
-        />
+        <div>
+          <TextField
+            label="Nama Lengkap"
+            required
+            error={errors.individualDetail?.namaLengkap}
+            registration={register("individualDetail.namaLengkap")}
+            ocrPath="individualDetail.namaLengkap"
+          />
+          {ocrDraft && (
+            <OcrCroppedSnippet
+              documentId={ocrDraft.id}
+              bbox={ocrDraft.fieldGuesses["individualDetail.namaLengkap"]?.bbox ?? null}
+            />
+          )}
+        </div>
         <TextField
           label="Nama Alias"
           error={errors.individualDetail?.namaAlias}
@@ -161,20 +226,31 @@ export function IndividualForm({
           error={errors.individualDetail?.jenisIdentitas}
           registration={register("individualDetail.jenisIdentitas")}
         />
-        <TextField
-          label="No. Identitas"
-          error={errors.individualDetail?.noIdentitas}
-          registration={register("individualDetail.noIdentitas")}
-        />
+        <div>
+          <TextField
+            label="No. Identitas"
+            error={errors.individualDetail?.noIdentitas}
+            registration={register("individualDetail.noIdentitas")}
+            ocrPath="individualDetail.noIdentitas"
+          />
+          {ocrDraft && (
+            <OcrCroppedSnippet
+              documentId={ocrDraft.id}
+              bbox={ocrDraft.fieldGuesses["individualDetail.noIdentitas"]?.bbox ?? null}
+            />
+          )}
+        </div>
         <TextField
           label="NPWP"
           error={errors.individualDetail?.npwp}
           registration={register("individualDetail.npwp")}
+          ocrPath="individualDetail.npwp"
         />
         <TextField
           label="Tempat Lahir"
           error={errors.individualDetail?.tempatLahir}
           registration={register("individualDetail.tempatLahir")}
+          ocrPath="individualDetail.tempatLahir"
         />
         <TextField
           label="Tanggal Lahir"
@@ -186,6 +262,7 @@ export function IndividualForm({
           label="Kewarganegaraan"
           error={errors.individualDetail?.kewarganegaraan}
           registration={register("individualDetail.kewarganegaraan")}
+          ocrPath="individualDetail.kewarganegaraan"
         />
         <SelectField
           label="Jenis Kelamin"
@@ -217,6 +294,7 @@ export function IndividualForm({
             label="Alamat Tempat Tinggal"
             error={errors.individualDetail?.alamatTempatTinggal}
             registration={register("individualDetail.alamatTempatTinggal")}
+            ocrPath="individualDetail.alamatTempatTinggal"
           />
         </FullRow>
         <FullRow>
@@ -224,6 +302,7 @@ export function IndividualForm({
             label="Alamat Domisili"
             error={errors.individualDetail?.alamatDomisili}
             registration={register("individualDetail.alamatDomisili")}
+            ocrPath="individualDetail.alamatDomisili"
           />
         </FullRow>
         {isForeignNational(kewarganegaraan) && (
@@ -240,11 +319,13 @@ export function IndividualForm({
           label="Nomor Telepon Rumah"
           error={errors.individualDetail?.nomorTeleponRumah}
           registration={register("individualDetail.nomorTeleponRumah")}
+          ocrPath="individualDetail.nomorTeleponRumah"
         />
         <TextField
           label="Nomor HP"
           error={errors.individualDetail?.nomorHp}
           registration={register("individualDetail.nomorHp")}
+          ocrPath="individualDetail.nomorHp"
         />
       </SectionCard>
 
@@ -273,21 +354,25 @@ export function IndividualForm({
           label="Bidang Usaha"
           error={errors.individualDetail?.bidangUsaha}
           registration={register("individualDetail.bidangUsaha")}
+          ocrPath="individualDetail.bidangUsaha"
         />
         <TextField
           label="Nama Kantor"
           error={errors.individualDetail?.namaKantor}
           registration={register("individualDetail.namaKantor")}
+          ocrPath="individualDetail.namaKantor"
         />
         <TextField
           label="Nomor Telepon Kantor"
           error={errors.individualDetail?.nomorTeleponKantor}
           registration={register("individualDetail.nomorTeleponKantor")}
+          ocrPath="individualDetail.nomorTeleponKantor"
         />
         <TextField
           label="Jabatan"
           error={errors.individualDetail?.jabatan}
           registration={register("individualDetail.jabatan")}
+          ocrPath="individualDetail.jabatan"
         />
         <SelectField
           label="Pendapatan Rata-Rata per Tahun"
@@ -300,6 +385,7 @@ export function IndividualForm({
             label="Alamat Kantor"
             error={errors.individualDetail?.alamatKantor}
             registration={register("individualDetail.alamatKantor")}
+            ocrPath="individualDetail.alamatKantor"
           />
         </FullRow>
         <FullRow>
@@ -307,6 +393,7 @@ export function IndividualForm({
             label="Tujuan Transaksi"
             error={errors.individualDetail?.tujuanTransaksi}
             registration={register("individualDetail.tujuanTransaksi")}
+            ocrPath="individualDetail.tujuanTransaksi"
           />
         </FullRow>
       </SectionCard>

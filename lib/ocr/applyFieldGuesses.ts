@@ -8,7 +8,7 @@ export function applyFieldGuesses<T extends Record<string, unknown>>(
   guesses: FieldGuesses
 ): T {
   const result = structuredClone(base);
-  for (const [path, value] of Object.entries(guesses)) {
+  for (const [path, guess] of Object.entries(guesses)) {
     const keys = path.split(".");
     let obj: Record<string, unknown> = result;
     for (let i = 0; i < keys.length - 1; i++) {
@@ -20,7 +20,7 @@ export function applyFieldGuesses<T extends Record<string, unknown>>(
     }
     const lastKey = keys[keys.length - 1];
     if (obj[lastKey] === "" || obj[lastKey] === undefined) {
-      obj[lastKey] = value;
+      obj[lastKey] = guess.value;
     }
   }
   return result;
