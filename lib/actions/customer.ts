@@ -7,6 +7,7 @@ import { computeAndPersistStatus } from "@/lib/status";
 import { toDate, nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
 import type { ActionResult } from "@/lib/actions/shared";
 import { attachDraftDocument } from "@/lib/actions/document";
+import { logActivity } from "@/lib/activityLog";
 import {
   corporateFormSchema,
   type CorporateFormOutput,
@@ -69,6 +70,7 @@ export async function createCorporateCustomer(
   });
 
   await computeAndPersistStatus(customer.id);
+  await logActivity(customer.id, "CDD Korporasi dibuat");
   revalidatePath("/");
   redirect(`/cdd/${customer.id}`);
 }
@@ -116,6 +118,7 @@ export async function createIndividualCustomer(
   });
 
   await computeAndPersistStatus(customer.id);
+  await logActivity(customer.id, "CDD Perorangan dibuat");
   revalidatePath("/");
   redirect(`/cdd/${customer.id}`);
 }
@@ -177,6 +180,7 @@ export async function createLegalArrangementCustomer(
   });
 
   await computeAndPersistStatus(customer.id);
+  await logActivity(customer.id, "CDD Perikatan Lainnya dibuat");
   revalidatePath("/");
   redirect(`/cdd/${customer.id}`);
 }

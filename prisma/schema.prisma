@@ -158,6 +158,7 @@ model Customer {
   riskAssessment          RiskAssessment?
   highRiskAdditionalInfo  HighRiskAdditionalInfo?
   documents               CustomerDocument[]
+  activityLog             ActivityLogEntry[]
 }
 
 // ============================================================
@@ -428,6 +429,17 @@ model CustomerDocument {
   fieldGuesses Json? // Record<string, string> — path field form -> nilai tebakan dari label matching
 
   createdAt DateTime @default(now())
+}
+
+// FR-13 — log aktivitas ringan, append-only, TANPA atribusi user (satu
+// notaris, satu PIN bersama — lihat FR-6B). Bukan sistem audit-trail resmi,
+// cuma "apa terjadi kapan" untuk dicek kalau ada data yang kelihatan aneh.
+model ActivityLogEntry {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  description String // teks siap-tampil, mis. "CDD Perorangan dibuat"
+  createdAt   DateTime @default(now())
 }
 
 // ============================================================

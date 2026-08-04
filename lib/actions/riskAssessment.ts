@@ -11,6 +11,7 @@ import {
 } from "@/lib/validations";
 import { nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
 import type { ActionResult } from "@/lib/actions/shared";
+import { logActivity } from "@/lib/activityLog";
 
 /** Radio "YA"/"TIDAK" → boolean. Dikonversi di sini (bukan di schema zod) agar
  * tipe input/output form persis sama — lihat catatan di lib/validations.ts. */
@@ -29,6 +30,10 @@ export async function saveRiskAssessment(
     return { success: false, fieldErrors: flattenZodError(parsed.error) };
   }
   const data = nullifyEmpty(parsed.data);
+  const existed = await prisma.riskAssessment.findUnique({
+    where: { customerId },
+    select: { id: true },
+  });
 
   await prisma.$transaction(async (tx) => {
     // Total Nilai HANYA final jika kelima kategori terpilih DAN masing-masing
@@ -100,6 +105,10 @@ export async function saveRiskAssessment(
   });
 
   await computeAndPersistStatus(customerId);
+  await logActivity(
+    customerId,
+    existed ? "Risk Assessment diperbarui" : "Risk Assessment disimpan"
+  );
   revalidatePath("/");
   revalidatePath(`/cdd/${customerId}`);
   redirect(`/cdd/${customerId}`);

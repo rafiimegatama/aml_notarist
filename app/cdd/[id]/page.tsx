@@ -9,8 +9,10 @@ import {
 } from "@/components/detail/DetailPrimitives";
 import { ExportToSheetButton } from "@/components/detail/ExportToSheetButton";
 import { CompletionChecklist } from "@/components/detail/CompletionChecklist";
+import { ActivityLogSection } from "@/components/detail/ActivityLogSection";
 import { getCompletionBreakdown } from "@/lib/status";
 import { getRetentionReviewDate, RETENTION_YEARS } from "@/lib/retention";
+import { getActivityLog } from "@/lib/activityLog";
 import {
   customerTypeLabels,
   customerStatusLabels,
@@ -95,6 +97,7 @@ export default async function CddDetailPage({
   if (!customer) notFound();
 
   const breakdown = await getCompletionBreakdown(id);
+  const activityLog = await getActivityLog(id);
 
   const displayName =
     customer.corporateDetail?.namaKorporasi ??
@@ -528,6 +531,8 @@ export default async function CddDetailPage({
           </div>
         </section>
       )}
+
+      <ActivityLogSection entries={activityLog} />
     </div>
   );
 }

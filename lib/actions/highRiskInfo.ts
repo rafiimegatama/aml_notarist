@@ -10,6 +10,7 @@ import {
 } from "@/lib/validations";
 import { toDate, nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
 import type { ActionResult } from "@/lib/actions/shared";
+import { logActivity } from "@/lib/activityLog";
 
 export async function saveHighRiskAdditionalInfo(
   customerId: string,
@@ -45,6 +46,10 @@ export async function saveHighRiskAdditionalInfo(
     return { success: false, fieldErrors: flattenZodError(parsed.error) };
   }
   const data = nullifyEmpty(parsed.data);
+  const existed = await prisma.highRiskAdditionalInfo.findUnique({
+    where: { customerId },
+    select: { id: true },
+  });
 
   await prisma.highRiskAdditionalInfo.upsert({
     where: { customerId },
@@ -60,6 +65,10 @@ export async function saveHighRiskAdditionalInfo(
   });
 
   await computeAndPersistStatus(customerId);
+  await logActivity(
+    customerId,
+    existed ? "Informasi Tambahan (EDD) diperbarui" : "Informasi Tambahan (EDD) disimpan"
+  );
   revalidatePath("/");
   revalidatePath(`/cdd/${customerId}`);
   redirect(`/cdd/${customerId}`);
