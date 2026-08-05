@@ -18,7 +18,7 @@ export async function GET() {
       legalArrangementDetail: true,
       riskAssessment: true,
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: { ltkmFlaggedAt: "desc" },
   });
 
   const rows: LtkmExportRow[] = customers.map((c) => {
@@ -36,7 +36,7 @@ export async function GET() {
       tipe: customerTypeLabels[c.type],
       kategoriRisiko,
       status: customerStatusLabels[c.status],
-      tanggalDitandai: formatDate(c.updatedAt),
+      tanggalDitandai: c.ltkmFlaggedAt ? formatDate(c.ltkmFlaggedAt) : "Tidak diketahui",
       catatan: c.ltkmNotes ?? "",
     };
   });

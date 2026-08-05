@@ -1,3 +1,5 @@
+import { addYearsClamped } from "@/lib/dateUtil";
+
 // FR-7 — PMPJ (Prinsip Mengenali Pengguna Jasa) adalah kewajiban PEMANTAUAN
 // berkelanjutan, bukan formulir sekali isi. Interval untuk kategori risiko
 // TINGGI (setahun sekali) disebutkan eksplisit sebagai contoh di
@@ -19,9 +21,7 @@ export function getNextReviewDue(
     riskCategory === "TINGGI"
       ? REVIEW_INTERVAL_YEARS_HIGH_RISK
       : REVIEW_INTERVAL_YEARS_DEFAULT;
-  const result = new Date(anchorDate);
-  result.setFullYear(result.getFullYear() + intervalYears);
-  return result;
+  return addYearsClamped(anchorDate, intervalYears);
 }
 
 export function isReviewOverdue(

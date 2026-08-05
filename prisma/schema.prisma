@@ -150,6 +150,7 @@ model Customer {
   lastReviewedAt DateTime? // FR-7 — null = belum pernah ditinjau ulang sejak dibuat
   isLtkm         Boolean        @default(false) // FR-8 — ditandai manual oleh notaris, bukan otomatis
   ltkmNotes      String? // FR-8 — catatan alasan/konteks, dipakai saat menyiapkan submission goAML manual
+  ltkmFlaggedAt  DateTime? // FR-8 — diisi HANYA saat isLtkm berubah ke true (lihat setLtkmFlag), TIDAK ikut berubah oleh update Customer lain (beda dari updatedAt, yang dulu salah dipakai untuk kolom "Tanggal Ditandai"). Null = belum pernah ditandai, atau ditandai sebelum kolom ini ada.
 
   corporateDetail         CorporateDetail?
   individualDetail        IndividualDetail?

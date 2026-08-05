@@ -1,3 +1,5 @@
+import { addYearsClamped } from "@/lib/dateUtil";
+
 // FR-5 baseline — angka 5 tahun berasal dari komentar profesional Ikatan
 // Notaris Indonesia (INI) atas PP No. 43/2015 & Permenkumham No. 9/2017,
 // dikutip di PRD-Notary-CDD-Phase2-Improvements.md Bagian 4 (FR-5) &
@@ -8,9 +10,7 @@
 export const RETENTION_YEARS = 5;
 
 export function getRetentionReviewDate(createdAt: Date): Date {
-  const result = new Date(createdAt);
-  result.setFullYear(result.getFullYear() + RETENTION_YEARS);
-  return result;
+  return addYearsClamped(createdAt, RETENTION_YEARS);
 }
 
 export function isPastRetentionReviewDate(createdAt: Date, now: Date): boolean {

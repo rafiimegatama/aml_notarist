@@ -18,6 +18,18 @@ export async function setLtkmFlag(
 ): Promise<void> {
   const data = nullifyEmpty({ ltkmNotes: notes });
 
+  // LtkmPanel calls this both to toggle the flag AND to save notes-only
+  // (isLtkm unchanged) — only touch ltkmFlaggedAt on an actual false<->true
+  // transition, so editing notes on an already-flagged customer doesn't
+  // reset its flagged date, and so it isn't left stale from BEFORE this
+  // column existed (previously the LTKM report showed Customer.updatedAt,
+  // which drifts on unrelated updates like "Tandai Sudah Ditinjau").
+  const current = await prisma.customer.findUniqueOrThrow({
+    where: { id: customerId },
+    select: { isLtkm: true },
+  });
+  const isTransition = current.isLtkm !== isLtkm;
+
   await prisma.customer.update({
     where: { id: customerId },
     data: {
@@ -28,6 +40,7 @@ export async function setLtkmFlag(
       // undefined would mean "leave the previous value untouched" instead
       // of clearing it — coalesce back to an explicit null.
       ltkmNotes: data.ltkmNotes ?? null,
+      ...(isTransition ? { ltkmFlaggedAt: isLtkm ? new Date() : null } : {}),
     },
   });
 

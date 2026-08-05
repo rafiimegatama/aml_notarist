@@ -22,7 +22,9 @@ export default async function AdminLtkmPage() {
       individualDetail: true,
       legalArrangementDetail: true,
     },
-    orderBy: { updatedAt: "desc" },
+    // ltkmFlaggedAt nulls (legacy rows flagged before this column existed)
+    // sort after dated rows in SQLite's default null-ordering for desc.
+    orderBy: { ltkmFlaggedAt: "desc" },
   });
 
   return (
@@ -70,7 +72,13 @@ export default async function AdminLtkmPage() {
                     {customerTypeLabels[c.type]}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    {formatDate(c.updatedAt)}
+                    {c.ltkmFlaggedAt ? (
+                      formatDate(c.ltkmFlaggedAt)
+                    ) : (
+                      <span className="text-gray-400" title="Ditandai sebelum kolom tanggal ini ada">
+                        Tidak diketahui
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-pre-wrap text-gray-700">
                     {c.ltkmNotes || <span className="text-gray-400">—</span>}
