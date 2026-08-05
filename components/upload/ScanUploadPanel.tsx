@@ -95,7 +95,7 @@ export function ScanUploadPanel() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+          className="btn btn-primary px-4 py-1.5 text-sm"
         >
           {submitting ? "Memproses OCR..." : "Proses OCR & Lanjutkan"}
         </button>

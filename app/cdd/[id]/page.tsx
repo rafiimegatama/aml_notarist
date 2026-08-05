@@ -158,13 +158,13 @@ export default async function CddDetailPage({
         <div className="flex shrink-0 gap-2">
           <Link
             href={`/cdd/${customer.id}/risk-assessment`}
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="btn btn-secondary px-4 py-2 text-sm"
           >
             {ra ? "Edit Risk Assessment" : "Lanjut ke Risk Assessment"}
           </Link>
           <Link
             href={`/cdd/${customer.id}/pdf`}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+            className="btn btn-primary px-4 py-2 text-sm"
           >
             Export PDF
           </Link>
@@ -201,7 +201,7 @@ export default async function CddDetailPage({
           </span>
           <Link
             href={`/cdd/${customer.id}/edd`}
-            className="ml-4 shrink-0 rounded-md bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
+            className="btn btn-danger ml-4 shrink-0 px-3 py-1.5 text-xs"
           >
             Isi Informasi Tambahan
           </Link>

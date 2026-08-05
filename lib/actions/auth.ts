@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   SESSION_COOKIE_NAME,
   SESSION_DURATION_HOURS,
@@ -10,6 +11,7 @@ import {
   resetLockout,
   verifyPinHash,
 } from "@/lib/auth";
+import { getEffectivePinHash } from "@/lib/pinSettings";
 
 export type VerifyPinResult =
   | { success: true }
@@ -25,14 +27,15 @@ export async function verifyPin(pin: string): Promise<VerifyPinResult> {
     };
   }
 
-  if (!process.env.PIN_HASH) {
+  const configuredHash = await getEffectivePinHash();
+  if (!configuredHash) {
     return {
       success: false,
       error: "PIN belum dikonfigurasi. Lihat SETUP.md untuk cara mengaturnya.",
     };
   }
 
-  if (!verifyPinHash(pin)) {
+  if (!verifyPinHash(pin, configuredHash)) {
     recordFailedAttempt();
     const status = getLockoutStatus();
     if (status.locked) {
@@ -65,4 +68,17 @@ export async function verifyPinFormAction(
 ): Promise<VerifyPinResult> {
   const pin = String(formData.get("pin") ?? "");
   return verifyPin(pin);
+}
+
+/**
+ * Kunci layar manual (tombol mengambang, lihat components/layout/LockButton).
+ * Cuma menghapus cookie sesi — TIDAK menyentuh lockoutState (itu murni untuk
+ * percobaan PIN salah, tidak relevan di sini) dan tidak perlu konfirmasi
+ * identitas apa pun karena kebalikan dari login: menurunkan akses, bukan
+ * menaikkan.
+ */
+export async function logout(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE_NAME);
+  redirect("/lock");
 }

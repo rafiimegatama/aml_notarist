@@ -508,3 +508,17 @@ model RefNotaryServiceTypeScore {
 
   riskAssessments RiskAssessment[]
 }
+
+// ============================================================
+// Pengaturan aplikasi (key-value) — dipakai untuk nilai yang perlu berubah
+// SAAT APLIKASI BERJALAN tanpa restart, beda dari .env yang cuma dibaca
+// sekali saat proses start. Contoh: PIN_HASH hasil reset lewat "Lupa PIN"
+// (lib/pinSettings.ts) — .env tetap jadi nilai bootstrap/fallback kalau
+// baris ini belum ada.
+// ============================================================
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

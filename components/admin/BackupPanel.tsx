@@ -53,16 +53,16 @@ export function BackupPanel({
         type="button"
         onClick={handleBackup}
         disabled={pending}
-        className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        className="btn btn-primary mt-4 px-4 py-2 text-sm"
       >
         {pending ? "Membuat backup..." : "Backup Now"}
       </button>
 
       {result && !result.success && (
-        <p className="mt-3 text-sm text-red-600">{result.error}</p>
+        <p role="alert" className="mt-3 text-sm text-red-600">{result.error}</p>
       )}
       {result?.success && (
-        <p className="mt-3 text-sm text-green-700">
+        <p role="status" className="mt-3 text-sm text-green-700">
           Backup berhasil dibuat.{" "}
           <a
             href={`/api/backup/${result.fileName}`}

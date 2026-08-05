@@ -17,5 +17,13 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|lock).*)"],
+  // "lock" juga otomatis mencakup /lock/forgot* (prefix match). api/auth/google
+  // dikecualikan terpisah karena BUKAN di bawah /lock — dua route OAuth alur
+  // "Lupa PIN" (lihat app/api/auth/google/) harus bisa diakses tanpa sesi.
+  // api/health juga dikecualikan — dipakai untuk cek proses hidup/tidak
+  // (mis. setelah `npm run up`) tanpa perlu login dulu, dan tidak membocorkan
+  // data apa pun (lihat app/api/health/route.ts).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|lock|api/auth/google|api/health).*)",
+  ],
 };

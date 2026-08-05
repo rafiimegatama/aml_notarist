@@ -41,7 +41,7 @@ export default async function AdminLtkmPage() {
         </div>
         <a
           href="/api/ltkm-export"
-          className="shrink-0 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+          className="btn btn-primary shrink-0 px-4 py-2 text-sm"
         >
           Export CSV
         </a>

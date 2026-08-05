@@ -54,6 +54,9 @@ next-env.d.ts
 /storage/archive/
 /storage/hdd-sync-meta.json
 
+# PM2 process-supervisor logs (npm run up / down / status / logs)
+/logs/
+
 # terraform state/artifacts (bisa berisi data sensitif Service Account)
 /terraform/.terraform/
 /terraform/*.tfstate

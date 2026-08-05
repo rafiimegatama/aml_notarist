@@ -26,7 +26,7 @@ export default function RouteError({
         <button
           type="button"
           onClick={reset}
-          className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500"
+          className="btn btn-danger px-4 py-2 text-sm"
         >
           Coba Lagi
         </button>

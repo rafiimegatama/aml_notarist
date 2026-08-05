@@ -14,16 +14,60 @@ disimpan sebagai hash (SHA-256), bukan teks biasa, di variabel lingkungan
 4. Pastikan `SESSION_SECRET` di `.env` juga sudah diisi (lihat `.env.example`).
 5. Restart aplikasi (`npm run dev` / `npm run start`).
 
-### Lupa PIN (reset manual)
+### Lupa PIN — reset lewat Google Sign-In
 
-Tidak ada flow "lupa PIN" otomatis — karena hanya ada satu PIN bersama, tidak
-ada akun/email untuk memverifikasi identitas siapa yang me-reset. Cara reset:
+Halaman `/lock` punya tautan "Lupa PIN?" yang mengarah ke `/lock/forgot`.
+Alurnya: notaris login dengan Google → server memverifikasi identitas Google
+itu (signature id_token, bukan sekadar percaya redirect) → HANYA kalau email
+akun yang login cocok persis dengan `PIN_RECOVERY_GOOGLE_EMAIL` di `.env`,
+notaris diizinkan mengatur PIN baru, langsung berlaku (tanpa restart —
+tersimpan di tabel `AppSetting`, bukan menimpa `.env`).
+
+Ini BUKAN integrasi Gmail (baca email) — scope OAuth yang diminta cuma
+`openid email`, murni untuk membuktikan "akun Google mana yang login", bukan
+akses ke isi akun tersebut. Beda dari Service Account yang dipakai fitur
+Google Sheets/Drive (autentikasi mesin-ke-mesin, lihat bagian di bawah) — ini
+memakai layar consent asli Google, jadi aplikasi ini akan muncul di daftar
+"Aplikasi pihak ketiga dengan akses akun" pada akun Google yang login.
+
+**Cara mengaktifkan (butuh Google Cloud Console, sekali saja):**
+
+1. Buka [Google Cloud Console](https://console.cloud.google.com/) → pilih
+   project yang sama dengan Service Account Sheets/Drive (atau project baru
+   kalau belum punya).
+2. **APIs & Services → OAuth consent screen** — pilih tipe **External**,
+   status **Testing** cukup (tidak perlu verifikasi Google karena hanya satu
+   pengguna). Tambahkan email di `PIN_RECOVERY_GOOGLE_EMAIL` sebagai **Test
+   user** — WAJIB, kalau tidak Google akan menolak login untuk akun itu.
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+   — tipe **Web application**.
+4. Di **Authorized redirect URIs**, tambahkan persis:
+   `http://127.0.0.1:4001/api/auth/google/callback`
+   (`4001` adalah port standar aplikasi ini — lihat `PORT` di `.env.example`
+   dan bagian "Port & Host Standar" di bawah; kalau pernah diubah, daftarkan
+   URI tambahan yang sesuai supaya login Google tidak gagal).
+5. Salin **Client ID** dan **Client secret** yang muncul ke `.env`:
+   ```
+   GOOGLE_OAUTH_CLIENT_ID="....apps.googleusercontent.com"
+   GOOGLE_OAUTH_CLIENT_SECRET="..."
+   PIN_RECOVERY_GOOGLE_EMAIL="akun-notaris@gmail.com"
+   ```
+6. Restart aplikasi. Kalau salah satu dari ketiga variabel di atas kosong,
+   `/lock/forgot` otomatis menampilkan pesan "belum dikonfigurasi" alih-alih
+   tombol Google — fallback manual di bawah tetap selalu bisa dipakai.
+
+### Reset manual (fallback, tanpa Google)
+
+Selalu tersedia, tidak butuh apa pun di atas:
 
 1. Buka file `.env` di komputer tempat aplikasi berjalan.
 2. Ulangi langkah "Mengatur PIN pertama kali" di atas dengan PIN baru.
 3. Restart aplikasi. Sesi yang sedang login tidak perlu login ulang sampai
-   sesi tersebut habis (default 10 jam) — tapi PIN lama langsung tidak
-   berlaku untuk login baru begitu `.env` disimpan dan aplikasi di-restart.
+   sesi tersebut habis (default 10 jam). PIN hasil reset lewat Google (kalau
+   pernah dipakai) tersimpan di `AppSetting`/DB dan **menang atas** `PIN_HASH`
+   di `.env` — kalau reset manual lewat `.env` sepertinya tidak berlaku, itu
+   sebabnya; hapus baris `pin_hash` di tabel `AppSetting` (mis. lewat Prisma
+   Studio) untuk kembali sepenuhnya ke sumber `.env`.
 
 ### Percobaan salah / terkunci
 
@@ -31,6 +75,83 @@ Setelah 3 kali PIN salah berurutan, percobaan berikutnya diblokir selama 5
 menit (lihat konstanta `LOCKOUT_THRESHOLD` dan `LOCKOUT_DURATION_MINUTES` di
 `lib/auth.ts`). Ini juga mereset otomatis begitu aplikasi (proses `next
 dev`/`next start`) di-restart.
+
+## Port & Host Standar
+
+Aplikasi ini SELALU jalan di `http://127.0.0.1:4001` — persis sama di semua
+mode (`npm run dev`, `npm run start`, dan `npm run up` lewat PM2). Port
+di-hardcode `-p 4001` di setiap script `package.json` (bukan cuma default
+yang bisa ketiban env var lain secara tidak sengaja), dan `ecosystem.config.js`
+memakai default yang sama. Kalau perlu ganti port, ubah di SEMUA tempat
+sekaligus: keempat script di `package.json`, `ecosystem.config.js`, dan
+redirect URI OAuth "Lupa PIN" di Google Cloud Console (lihat bagian PIN Akses
+di atas) — port yang tidak konsisten di salah satu tempat ini akan membuat
+login Google gagal atau (untuk `npm run dev`/`start`) app jalan di port yang
+tidak diharapkan.
+
+Host tetap `127.0.0.1` (bukan `localhost` sebagai string) — FR-6A sengaja
+mengikat ke alamat IP eksplisit ini, bukan hostname, supaya resolusi jaringan
+tidak ambigu (`localhost` bisa resolve ke `::1` IPv6 tergantung konfigurasi
+OS) dan supaya jelas app TIDAK diekspos ke jaringan (`*:lan` variants
+memakai `0.0.0.0` secara sadar, terpisah, kalau memang dibutuhkan).
+
+## Menjalankan App Selalu Aktif (PM2)
+
+`npm run dev`/`npm run start` biasa mati begitu jendela terminal/cmd yang
+menjalankannya ditutup. Untuk pemakaian sehari-hari di kantor — supaya app
+tetap jalan meski terminal ditutup, dan otomatis pulih sendiri kalau proses
+sempat crash — pakai [PM2](https://pm2.keymetrics.io/) (process supervisor
+untuk Node.js), sudah termasuk sebagai dev dependency di `package.json`.
+
+**Lingkup:** ini crash-recovery (proses otomatis restart kalau tiba-tiba
+mati), BUKAN auto-start setelah Windows di-restart. Setelah komputer
+dinyalakan ulang, jalankan sekali lagi perintah di bawah — app tidak otomatis
+hidup sendiri sebelum itu.
+
+### Perintah (satu baris, sama persis di cmd.exe maupun bash/git-bash)
+
+```
+npm install       # sekali saja / setelah pull perubahan baru — install semua dependency termasuk PM2
+npm run up        # build production + jalankan di bawah PM2, tetap hidup walau terminal ditutup
+```
+
+`npm run up` melakukan `next build` (build production terbaru) lalu
+menjalankan/reload PM2 (`ecosystem.config.js`) — aman dijalankan berulang
+kali (idempotent): kalau app belum jalan, PM2 menyalakannya; kalau sudah
+jalan, PM2 me-reload dengan build terbaru tanpa downtime berarti.
+
+Perintah lain:
+
+| Perintah | Fungsi |
+|----------|--------|
+| `npm run status` | Cek apakah app sedang `online` (dan sudah berapa lama, berapa kali restart) |
+| `npm run logs` | Tail log app (`Ctrl+C` untuk keluar dari tail — app TETAP jalan di background) |
+| `npm run restart` | Restart manual (mis. setelah ganti `.env`) |
+| `npm run down` | Matikan app sepenuhnya |
+
+Cek cepat lewat browser/`curl` tanpa perlu login PIN dulu:
+`http://127.0.0.1:4001/api/health` — harus balas `{"status":"ok",...}` kalau
+server hidup.
+
+**Kenapa PM2, bukan sekadar `next start` di terminal:** `next start` biasa
+adalah proses foreground biasa — begitu terminal ditutup (atau laptop
+sleep/logout), proses ikut mati, dan kalau app crash karena bug tidak ada
+yang menyalakannya lagi sampai ada orang sadar dan menjalankan ulang manual.
+PM2 menjalankan app sebagai proses daemon terpisah dari terminal yang
+memanggilnya (`pm2 startOrReload` lalu keluar — app tetap hidup), dan
+memantau proses tsb: kalau exit tak terduga, PM2 otomatis start ulang
+(dibatasi `max_restarts`/`min_uptime` di `ecosystem.config.js` supaya tidak
+restart-loop tanpa henti kalau penyebabnya bug yang butuh perbaikan manual,
+bukan gangguan sesaat). Ini pola standar untuk menjaga proses Node.js/Next.js
+tetap hidup di satu mesin lokal tanpa perlu masuk ke kerumitan container atau
+Windows Service (yang butuh install sebagai administrator dan baru relevan
+kalau app juga harus otomatis hidup setelah restart Windows — bukan
+kebutuhan saat ini).
+
+`-H 127.0.0.1 -p 4001` tetap dipertahankan di `ecosystem.config.js` (sama
+seperti `npm run start` biasa) — app tetap terikat ke localhost saja di port
+standar yang sama, tidak diekspos ke jaringan (FR-6A), walau dijalankan
+lewat PM2.
 
 ## Keamanan Data — Rekomendasi Enkripsi (FR-5)
 

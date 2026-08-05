@@ -19,7 +19,7 @@ export function MarkReviewedButton({ customerId }: { customerId: string }) {
       type="button"
       onClick={handleClick}
       disabled={pending}
-      className="shrink-0 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      className="btn btn-secondary shrink-0 px-3 py-1.5 text-xs"
     >
       {pending ? "Menyimpan..." : done ? "Tersimpan" : "Tandai Sudah Ditinjau"}
     </button>

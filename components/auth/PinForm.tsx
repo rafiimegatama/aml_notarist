@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { verifyPinFormAction } from "@/lib/actions/auth";
 
 export function PinForm({ next }: { next: string }) {
@@ -35,15 +36,20 @@ export function PinForm({ next }: { next: string }) {
         className="rounded border border-gray-300 px-3 py-2 text-center text-lg tracking-widest"
       />
       {state && !state.success && (
-        <p className="text-sm text-red-600">{state.error}</p>
+        <p role="alert" className="text-sm text-red-600">{state.error}</p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        className="btn btn-primary px-4 py-2 text-sm"
       >
         {pending ? "Memeriksa..." : "Masuk"}
       </button>
+      <p className="text-center text-sm">
+        <Link href="/lock/forgot" className="text-blue-600 hover:underline">
+          Lupa PIN?
+        </Link>
+      </p>
     </form>
   );
 }

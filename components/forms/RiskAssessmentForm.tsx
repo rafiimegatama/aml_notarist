@@ -304,7 +304,7 @@ export function RiskAssessmentForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
+          className="btn btn-primary px-5 py-2.5 text-sm shadow-sm"
         >
           {isSubmitting ? "Menyimpan..." : "Simpan Risk Assessment"}
         </button>

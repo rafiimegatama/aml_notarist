@@ -1,0 +1,7 @@
+# Salin ke terraform.tfvars (di-gitignore) lalu sesuaikan kalau perlu.
+# Semua field ini punya default yang sama di variables.tf, jadi file ini
+# opsional kecuali kamu ingin override.
+
+project_id         = "project-bead1995-1df2-4fdd-8ec"
+service_account_id = "notary-cdd-sync"
+spreadsheet_id      = "1WkQ_UhutY0cS4CTB7E_84bn9b7UxFg-uF3JhR_VQdTg"

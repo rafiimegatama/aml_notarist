@@ -47,7 +47,7 @@ export function SheetsFullSyncPanel() {
         type="button"
         onClick={handleClick}
         disabled={isPending}
-        className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        className="btn btn-primary mt-4 px-4 py-2 text-sm"
       >
         {isPending ? "Menyinkronkan..." : "Sinkron Semua Tab Detail Sekarang"}
       </button>
@@ -58,7 +58,7 @@ export function SheetsFullSyncPanel() {
         </p>
       )}
       {result?.success && (
-        <div className="mt-3 text-sm text-green-700">
+        <div role="status" className="mt-3 text-sm text-green-700">
           <p>Sinkron berhasil. Jumlah baris per tab:</p>
           <ul className="mt-1 list-inside list-disc text-gray-700">
             {Object.entries(result.counts).map(([tab, count]) => (
