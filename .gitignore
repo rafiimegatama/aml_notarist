@@ -53,3 +53,12 @@ next-env.d.ts
 /storage/backups/
 /storage/archive/
 /storage/hdd-sync-meta.json
+
+# terraform state/artifacts (bisa berisi data sensitif Service Account)
+/terraform/.terraform/
+/terraform/*.tfstate
+/terraform/*.tfstate.*
+/terraform/terraform.tfvars
+/terraform/*.tfplan
+/terraform/sa-key.json
+/terraform/*.json
