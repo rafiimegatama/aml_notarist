@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getLastBackupInfo } from "@/lib/actions/backup";
 import { getBackupChannelsStatus } from "@/lib/actions/backupStatus";
 import { BackupPanel } from "@/components/admin/BackupPanel";
+import { SheetsFullSyncPanel } from "@/components/admin/SheetsFullSyncPanel";
 
 export const metadata: Metadata = {
   title: "Backup Data",
@@ -72,6 +73,8 @@ export default async function AdminBackupPage() {
           </div>
         </dl>
       </section>
+
+      {channels.sheets.configured && <SheetsFullSyncPanel />}
     </div>
   );
 }

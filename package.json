@@ -6,7 +6,8 @@
     "dev": "next dev -H 127.0.0.1",
     "build": "next build",
     "start": "next start -H 127.0.0.1",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:sheets": "tsx -r dotenv/config scripts/sync-google-sheets.ts dotenv_config_path=.env"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.5.7",

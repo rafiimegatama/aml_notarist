@@ -88,3 +88,56 @@ export async function appendRange(
     body: JSON.stringify({ values }),
   });
 }
+
+export async function clearRange(config: SheetsConfig, range: string): Promise<void> {
+  const url = `${SHEETS_API_BASE}/${config.spreadsheetId}/values/${encodeURIComponent(range)}:clear`;
+  await authorizedFetch(config, url, { method: "POST" });
+}
+
+export type SheetTabMeta = { sheetId: number; title: string };
+
+export async function listSheetTabs(config: SheetsConfig): Promise<SheetTabMeta[]> {
+  const url = `${SHEETS_API_BASE}/${config.spreadsheetId}?fields=sheets.properties(sheetId,title)`;
+  const data = (await authorizedFetch(config, url)) as {
+    sheets?: { properties: SheetTabMeta }[];
+  };
+  return (data.sheets ?? []).map((s) => s.properties);
+}
+
+/**
+ * Bikin tab (sheet) baru lewat batchUpdate kalau namanya belum ada — dicek
+ * lewat listSheetTabs dulu supaya idempotent (jalan ulang tidak bikin tab
+ * duplikat / tidak error kalau tab sudah pernah dibuat run sebelumnya).
+ */
+export async function ensureTabsExist(
+  config: SheetsConfig,
+  titles: string[]
+): Promise<void> {
+  const existing = await listSheetTabs(config);
+  const existingTitles = new Set(existing.map((s) => s.title));
+  const missing = titles.filter((t) => !existingTitles.has(t));
+  if (missing.length === 0) return;
+
+  const url = `${SHEETS_API_BASE}/${config.spreadsheetId}:batchUpdate`;
+  await authorizedFetch(config, url, {
+    method: "POST",
+    body: JSON.stringify({
+      requests: missing.map((title) => ({ addSheet: { properties: { title } } })),
+    }),
+  });
+}
+
+/**
+ * Konversi index kolom 1-based jadi huruf kolom Sheets (1->A, 26->Z, 27->AA).
+ * Dipakai supaya tab dengan >26 kolom (mis. CDD_Perorangan) tetap benar.
+ */
+export function columnLetter(index: number): string {
+  let n = index;
+  let letters = "";
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    letters = String.fromCharCode(65 + rem) + letters;
+    n = Math.floor((n - 1) / 26);
+  }
+  return letters;
+}
