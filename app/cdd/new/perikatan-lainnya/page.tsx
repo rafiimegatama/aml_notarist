@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalArrangementForm } from "@/components/forms/LegalArrangementForm";
 import { loadDraftDocument } from "@/lib/actions/document";
+import { loadLegalArrangementPrefill } from "@/lib/actions/duplicateLookup";
 
 export const metadata: Metadata = {
   title: "CDD Baru — Perikatan Lainnya",
@@ -9,11 +10,14 @@ export const metadata: Metadata = {
 export default async function NewLegalArrangementCddPage({
   searchParams,
 }: {
-  searchParams: Promise<{ draftUploadId?: string }>;
+  searchParams: Promise<{ draftUploadId?: string; prefillFromCustomerId?: string }>;
 }) {
-  const { draftUploadId } = await searchParams;
+  const { draftUploadId, prefillFromCustomerId } = await searchParams;
   const ocrDraft = draftUploadId
     ? await loadDraftDocument(draftUploadId, "LEGAL_ARRANGEMENT")
+    : null;
+  const prefill = prefillFromCustomerId
+    ? await loadLegalArrangementPrefill(prefillFromCustomerId)
     : null;
 
   return (
@@ -27,7 +31,7 @@ export default async function NewLegalArrangementCddPage({
           menyimpan. Field lain boleh dilengkapi belakangan.
         </p>
       </div>
-      <LegalArrangementForm ocrDraft={ocrDraft} />
+      <LegalArrangementForm ocrDraft={ocrDraft} prefill={prefill} />
     </div>
   );
 }

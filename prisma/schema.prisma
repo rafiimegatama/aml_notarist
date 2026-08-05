@@ -192,6 +192,10 @@ model CorporateDetail {
   sumberDana         String? // B1
   pendapatanRataRata String? // B3
   tujuanTransaksi    String? // B4
+
+  // Dipakai untuk deteksi klien lama (cari-lalu-prefill) saat notaris membuat CDD baru.
+  @@index([npwp])
+  @@index([nomorTelepon])
 }
 
 // ============================================================
@@ -231,6 +235,10 @@ model IndividualDetail {
   jabatan                 String? // B3c
   pendapatanRataRata      PendapatanRange? // B4
   tujuanTransaksi         String? // B5
+
+  // Dipakai untuk deteksi klien lama (cari-lalu-prefill) saat notaris membuat CDD baru.
+  @@index([noIdentitas])
+  @@index([nomorHp])
 }
 
 // ============================================================
@@ -261,6 +269,11 @@ model LegalArrangementDetail {
   sumberDana         String? // B1
   pendapatanRataRata String? // B3
   tujuanTransaksi    String? // B4
+
+  // Dipakai untuk deteksi klien lama (cari-lalu-prefill) saat notaris membuat CDD baru.
+  @@index([noIdentitas])
+  @@index([npwp])
+  @@index([nomorTelepon])
 }
 
 // ============================================================

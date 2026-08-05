@@ -11,6 +11,7 @@ import {
 } from "@/lib/validations";
 import { createLegalArrangementCustomer } from "@/lib/actions/customer";
 import type { DraftDocument } from "@/lib/actions/document";
+import type { LegalArrangementPrefill } from "@/lib/actions/duplicateLookup";
 import {
   SectionCard,
   TextField,
@@ -64,25 +65,46 @@ const defaultValues: LegalArrangementFormValues = {
 
 export function LegalArrangementForm({
   ocrDraft,
+  prefill,
 }: {
   ocrDraft?: DraftDocument | null;
+  prefill?: LegalArrangementPrefill | null;
 }) {
   return (
     <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
-      <LegalArrangementFormInner ocrDraft={ocrDraft} />
+      <LegalArrangementFormInner ocrDraft={ocrDraft} prefill={prefill} />
     </OcrFieldProvider>
   );
 }
 
 function LegalArrangementFormInner({
   ocrDraft,
+  prefill,
 }: {
   ocrDraft?: DraftDocument | null;
+  prefill?: LegalArrangementPrefill | null;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [showOcrGate, setShowOcrGate] = useState(false);
   const [bypassOcrGate, setBypassOcrGate] = useState(false);
   const ocrGate = useOcrUnverifiedPaths();
+  const prefilledDefaults: LegalArrangementFormValues = prefill
+    ? {
+        legalArrangementDetail: {
+          ...defaultValues.legalArrangementDetail,
+          ...prefill.values.legalArrangementDetail,
+        },
+        beneficialOwners:
+          prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
+            ? prefill.values.beneficialOwners
+            : defaultValues.beneficialOwners,
+        parties:
+          prefill.values.parties && prefill.values.parties.length > 0
+            ? prefill.values.parties
+            : defaultValues.parties,
+        notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+      }
+    : defaultValues;
   const {
     register,
     control,
@@ -98,15 +120,15 @@ function LegalArrangementFormInner({
   >({
     resolver: zodResolver(legalArrangementFormSchema),
     defaultValues: ocrDraft
-      ? applyFieldGuesses(defaultValues, ocrDraft.fieldGuesses)
-      : defaultValues,
+      ? applyFieldGuesses(prefilledDefaults, ocrDraft.fieldGuesses)
+      : prefilledDefaults,
   });
 
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
   const onSubmit = handleSubmit(async (values: LegalArrangementFormOutput) => {
     setFormError(null);
-    const result = await createLegalArrangementCustomer(values, ocrDraft?.id);
+    const result = await createLegalArrangementCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
     if (!result.success) {
       setFormError(
         result.formError ?? "Periksa kembali isian yang bertanda merah."
@@ -138,6 +160,17 @@ function LegalArrangementFormInner({
           className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {formError}
+        </div>
+      )}
+
+      {prefill && (
+        <div
+          role="status"
+          className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+        >
+          Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
+          <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
+          yang mungkin sudah berubah sebelum menyimpan.
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DuplicateLookupPanel } from "@/components/newcase/DuplicateLookupPanel";
 
 export const metadata: Metadata = {
   title: "Buat CDD Baru",
@@ -32,6 +33,7 @@ export default function NewCddPage() {
           Pilih jenis pengguna jasa untuk memulai Customer Due Diligence.
         </p>
       </div>
+      <DuplicateLookupPanel />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {options.map((opt) => (
           <Link

@@ -10,6 +10,7 @@ import {
 } from "@/lib/validations";
 import { createCorporateCustomer } from "@/lib/actions/customer";
 import type { DraftDocument } from "@/lib/actions/document";
+import type { CorporatePrefill } from "@/lib/actions/duplicateLookup";
 import {
   SectionCard,
   TextField,
@@ -81,25 +82,40 @@ const defaultValues: CorporateFormValues = {
 
 export function CorporateForm({
   ocrDraft,
+  prefill,
 }: {
   ocrDraft?: DraftDocument | null;
+  prefill?: CorporatePrefill | null;
 }) {
   return (
     <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
-      <CorporateFormInner ocrDraft={ocrDraft} />
+      <CorporateFormInner ocrDraft={ocrDraft} prefill={prefill} />
     </OcrFieldProvider>
   );
 }
 
 function CorporateFormInner({
   ocrDraft,
+  prefill,
 }: {
   ocrDraft?: DraftDocument | null;
+  prefill?: CorporatePrefill | null;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [showOcrGate, setShowOcrGate] = useState(false);
   const [bypassOcrGate, setBypassOcrGate] = useState(false);
   const ocrGate = useOcrUnverifiedPaths();
+  const prefilledDefaults: CorporateFormValues = prefill
+    ? {
+        corporateDetail: { ...defaultValues.corporateDetail, ...prefill.values.corporateDetail },
+        beneficialOwners:
+          prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
+            ? prefill.values.beneficialOwners
+            : defaultValues.beneficialOwners,
+        powerOfAttorney: { ...defaultValues.powerOfAttorney, ...prefill.values.powerOfAttorney },
+        notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+      }
+    : defaultValues;
   const {
     register,
     control,
@@ -111,15 +127,15 @@ function CorporateFormInner({
   } = useForm<CorporateFormValues, unknown, CorporateFormOutput>({
     resolver: zodResolver(corporateFormSchema),
     defaultValues: ocrDraft
-      ? applyFieldGuesses(defaultValues, ocrDraft.fieldGuesses)
-      : defaultValues,
+      ? applyFieldGuesses(prefilledDefaults, ocrDraft.fieldGuesses)
+      : prefilledDefaults,
   });
 
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
   const onSubmit = handleSubmit(async (values: CorporateFormOutput) => {
     setFormError(null);
-    const result = await createCorporateCustomer(values, ocrDraft?.id);
+    const result = await createCorporateCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
     // Jika sukses, createCorporateCustomer memanggil redirect() dan tidak pernah sampai ke sini.
     if (!result.success) {
       setFormError(
@@ -152,6 +168,17 @@ function CorporateFormInner({
           className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {formError}
+        </div>
+      )}
+
+      {prefill && (
+        <div
+          role="status"
+          className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+        >
+          Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
+          <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
+          yang mungkin sudah berubah sebelum menyimpan.
         </div>
       )}
 

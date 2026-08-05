@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CorporateForm } from "@/components/forms/CorporateForm";
 import { loadDraftDocument } from "@/lib/actions/document";
+import { loadCorporatePrefill } from "@/lib/actions/duplicateLookup";
 
 export const metadata: Metadata = {
   title: "CDD Baru — Korporasi",
@@ -9,11 +10,14 @@ export const metadata: Metadata = {
 export default async function NewCorporateCddPage({
   searchParams,
 }: {
-  searchParams: Promise<{ draftUploadId?: string }>;
+  searchParams: Promise<{ draftUploadId?: string; prefillFromCustomerId?: string }>;
 }) {
-  const { draftUploadId } = await searchParams;
+  const { draftUploadId, prefillFromCustomerId } = await searchParams;
   const ocrDraft = draftUploadId
     ? await loadDraftDocument(draftUploadId, "KORPORASI")
+    : null;
+  const prefill = prefillFromCustomerId
+    ? await loadCorporatePrefill(prefillFromCustomerId)
     : null;
 
   return (
@@ -27,7 +31,7 @@ export default async function NewCorporateCddPage({
           menyimpan. Field lain boleh dilengkapi belakangan.
         </p>
       </div>
-      <CorporateForm ocrDraft={ocrDraft} />
+      <CorporateForm ocrDraft={ocrDraft} prefill={prefill} />
     </div>
   );
 }

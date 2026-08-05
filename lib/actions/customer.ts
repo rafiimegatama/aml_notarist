@@ -19,7 +19,8 @@ import {
 
 export async function createCorporateCustomer(
   input: CorporateFormOutput,
-  draftUploadId?: string
+  draftUploadId?: string,
+  prefillSourceLabel?: string
 ): Promise<ActionResult> {
   const parsed = corporateFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -70,14 +71,20 @@ export async function createCorporateCustomer(
   });
 
   await computeAndPersistStatus(customer.id);
-  await logActivity(customer.id, "CDD Korporasi dibuat");
+  await logActivity(
+    customer.id,
+    prefillSourceLabel
+      ? `CDD Korporasi dibuat (data awal dari klien terdaftar: ${prefillSourceLabel})`
+      : "CDD Korporasi dibuat"
+  );
   revalidatePath("/");
   redirect(`/cdd/${customer.id}`);
 }
 
 export async function createIndividualCustomer(
   input: IndividualFormOutput,
-  draftUploadId?: string
+  draftUploadId?: string,
+  prefillSourceLabel?: string
 ): Promise<ActionResult> {
   const parsed = individualFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -118,14 +125,20 @@ export async function createIndividualCustomer(
   });
 
   await computeAndPersistStatus(customer.id);
-  await logActivity(customer.id, "CDD Perorangan dibuat");
+  await logActivity(
+    customer.id,
+    prefillSourceLabel
+      ? `CDD Perorangan dibuat (data awal dari klien terdaftar: ${prefillSourceLabel})`
+      : "CDD Perorangan dibuat"
+  );
   revalidatePath("/");
   redirect(`/cdd/${customer.id}`);
 }
 
 export async function createLegalArrangementCustomer(
   input: LegalArrangementFormOutput,
-  draftUploadId?: string
+  draftUploadId?: string,
+  prefillSourceLabel?: string
 ): Promise<ActionResult> {
   const parsed = legalArrangementFormSchema.safeParse(input);
   if (!parsed.success) {
@@ -180,7 +193,12 @@ export async function createLegalArrangementCustomer(
   });
 
   await computeAndPersistStatus(customer.id);
-  await logActivity(customer.id, "CDD Perikatan Lainnya dibuat");
+  await logActivity(
+    customer.id,
+    prefillSourceLabel
+      ? `CDD Perikatan Lainnya dibuat (data awal dari klien terdaftar: ${prefillSourceLabel})`
+      : "CDD Perikatan Lainnya dibuat"
+  );
   revalidatePath("/");
   redirect(`/cdd/${customer.id}`);
 }

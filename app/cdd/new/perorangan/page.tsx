@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IndividualForm } from "@/components/forms/IndividualForm";
 import { loadDraftDocument } from "@/lib/actions/document";
+import { loadIndividualPrefill } from "@/lib/actions/duplicateLookup";
 
 export const metadata: Metadata = {
   title: "CDD Baru — Perorangan",
@@ -9,11 +10,14 @@ export const metadata: Metadata = {
 export default async function NewIndividualCddPage({
   searchParams,
 }: {
-  searchParams: Promise<{ draftUploadId?: string }>;
+  searchParams: Promise<{ draftUploadId?: string; prefillFromCustomerId?: string }>;
 }) {
-  const { draftUploadId } = await searchParams;
+  const { draftUploadId, prefillFromCustomerId } = await searchParams;
   const ocrDraft = draftUploadId
     ? await loadDraftDocument(draftUploadId, "PERORANGAN")
+    : null;
+  const prefill = prefillFromCustomerId
+    ? await loadIndividualPrefill(prefillFromCustomerId)
     : null;
 
   return (
@@ -27,7 +31,7 @@ export default async function NewIndividualCddPage({
           menyimpan. Field lain boleh dilengkapi belakangan.
         </p>
       </div>
-      <IndividualForm ocrDraft={ocrDraft} />
+      <IndividualForm ocrDraft={ocrDraft} prefill={prefill} />
     </div>
   );
 }

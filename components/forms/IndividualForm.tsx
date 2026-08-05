@@ -10,6 +10,7 @@ import {
 } from "@/lib/validations";
 import { createIndividualCustomer } from "@/lib/actions/customer";
 import type { DraftDocument } from "@/lib/actions/document";
+import type { IndividualPrefill } from "@/lib/actions/duplicateLookup";
 import {
   SectionCard,
   TextField,
@@ -82,25 +83,39 @@ const defaultValues: IndividualFormValues = {
 
 export function IndividualForm({
   ocrDraft,
+  prefill,
 }: {
   ocrDraft?: DraftDocument | null;
+  prefill?: IndividualPrefill | null;
 }) {
   return (
     <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
-      <IndividualFormInner ocrDraft={ocrDraft} />
+      <IndividualFormInner ocrDraft={ocrDraft} prefill={prefill} />
     </OcrFieldProvider>
   );
 }
 
 function IndividualFormInner({
   ocrDraft,
+  prefill,
 }: {
   ocrDraft?: DraftDocument | null;
+  prefill?: IndividualPrefill | null;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [showOcrGate, setShowOcrGate] = useState(false);
   const [bypassOcrGate, setBypassOcrGate] = useState(false);
   const ocrGate = useOcrUnverifiedPaths();
+  const prefilledDefaults: IndividualFormValues = prefill
+    ? {
+        individualDetail: { ...defaultValues.individualDetail, ...prefill.values.individualDetail },
+        beneficialOwners:
+          prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
+            ? prefill.values.beneficialOwners
+            : defaultValues.beneficialOwners,
+        notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+      }
+    : defaultValues;
   const {
     register,
     control,
@@ -112,8 +127,8 @@ function IndividualFormInner({
   } = useForm<IndividualFormValues, unknown, IndividualFormOutput>({
     resolver: zodResolver(individualFormSchema),
     defaultValues: ocrDraft
-      ? applyFieldGuesses(defaultValues, ocrDraft.fieldGuesses)
-      : defaultValues,
+      ? applyFieldGuesses(prefilledDefaults, ocrDraft.fieldGuesses)
+      : prefilledDefaults,
   });
 
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
@@ -133,7 +148,7 @@ function IndividualFormInner({
 
   const onSubmit = handleSubmit(async (values: IndividualFormOutput) => {
     setFormError(null);
-    const result = await createIndividualCustomer(values, ocrDraft?.id);
+    const result = await createIndividualCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
     if (!result.success) {
       setFormError(
         result.formError ?? "Periksa kembali isian yang bertanda merah."
@@ -168,6 +183,17 @@ function IndividualFormInner({
           className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {formError}
+        </div>
+      )}
+
+      {prefill && (
+        <div
+          role="status"
+          className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+        >
+          Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
+          <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
+          yang mungkin sudah berubah sebelum menyimpan.
         </div>
       )}
 
