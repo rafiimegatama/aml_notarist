@@ -21,6 +21,22 @@ function yesNoToBoolean(value?: string): boolean | undefined {
   return undefined;
 }
 
+/** nullifyEmpty() turns "" into undefined so a bare `create` uses the column
+ * default (null). But this object is also spread into upsert's `update`
+ * branch, where an explicit `undefined` means "leave the previous value
+ * untouched" instead of "clear it" — same class of bug previously found+
+ * fixed in lib/actions/ltkm.ts. Coalesce back to explicit null so clearing a
+ * previously-filled PEP/score field (e.g. blanking "Warga Negara PEP", or
+ * resetting a score dropdown to unselected) actually persists. Safe for
+ * `create` too since these are all nullable columns with no @default. */
+function nullToClear<T extends Record<string, unknown>>(obj: T): T {
+  const out = { ...obj };
+  for (const key in out) {
+    if (out[key] === undefined) out[key] = null as never;
+  }
+  return out;
+}
+
 export async function saveRiskAssessment(
   customerId: string,
   input: RiskAssessmentOutput
@@ -83,19 +99,20 @@ export async function saveRiskAssessment(
       data;
     const isPep = yesNoToBoolean(isPepRaw);
     const adaBeritaNegatif = yesNoToBoolean(adaBeritaNegatifRaw);
+    const clearedRest = nullToClear(rest);
 
     await tx.riskAssessment.upsert({
       where: { customerId },
       create: {
         customerId,
-        ...rest,
+        ...clearedRest,
         isPep,
         adaBeritaNegatif,
         totalScore,
         riskCategory,
       },
       update: {
-        ...rest,
+        ...clearedRest,
         isPep,
         adaBeritaNegatif,
         totalScore,

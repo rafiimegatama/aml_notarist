@@ -5,9 +5,12 @@
 //  - Nomor telepon: notaris/klien bisa menulis "0812...", "+62812...", atau
 //    "62812..." untuk nomor yang sama — semua diringkas ke digit inti tanpa
 //    awalan negara/trunk supaya ketiganya cocok satu sama lain.
-//  - No. Identitas/NPWP: NIK & NPWP cuma digit, tapi No. Identitas juga bisa
-//    diisi nomor paspor (alfanumerik) — jadi hanya spasi/strip yang dibuang
-//    dan huruf disamakan besar-kecilnya, bukan di-strip jadi digit saja.
+//  - No. Identitas/NPWP: NIK cuma digit, NPWP lazim ditulis/OCR-terbaca
+//    dengan format titik+strip ("01.234.567.8-901.000"), dan No. Identitas
+//    juga bisa diisi nomor paspor (alfanumerik) — jadi spasi, strip, DAN
+//    titik dibuang (paspor Indonesia tidak memakai titik), huruf disamakan
+//    besar-kecilnya, tapi tidak di-strip jadi digit saja supaya paspor
+//    alfanumerik tetap kebaca.
 
 export function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
@@ -16,5 +19,5 @@ export function normalizePhone(raw: string): string {
 }
 
 export function normalizeIdValue(raw: string): string {
-  return raw.replace(/[\s-]/g, "").toUpperCase();
+  return raw.replace(/[\s.-]/g, "").toUpperCase();
 }

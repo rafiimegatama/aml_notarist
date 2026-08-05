@@ -12,6 +12,22 @@ import { toDate, nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
 import type { ActionResult } from "@/lib/actions/shared";
 import { logActivity } from "@/lib/activityLog";
 
+/** nullifyEmpty() turns "" into undefined so a bare `create` uses the column
+ * default (null) — but this object is also spread into upsert's `update`
+ * branch, where an explicit `undefined` means "leave the previous value
+ * untouched" instead of "clear it" (same class of bug previously found+fixed
+ * in lib/actions/ltkm.ts). Coalesce back to explicit null so clearing an
+ * already-filled EDD field (e.g. blanking "Metode Pembayaran" or the date of
+ * birth) actually persists. Safe for `create` too since these are all
+ * nullable columns with no @default. */
+function nullToClear<T extends Record<string, unknown>>(obj: T): T {
+  const out = { ...obj };
+  for (const key in out) {
+    if (out[key] === undefined) out[key] = null as never;
+  }
+  return out;
+}
+
 export async function saveHighRiskAdditionalInfo(
   customerId: string,
   input: HighRiskAdditionalInfoOutput
@@ -46,6 +62,7 @@ export async function saveHighRiskAdditionalInfo(
     return { success: false, fieldErrors: flattenZodError(parsed.error) };
   }
   const data = nullifyEmpty(parsed.data);
+  const clearedData = nullToClear(data);
   const existed = await prisma.highRiskAdditionalInfo.findUnique({
     where: { customerId },
     select: { id: true },
@@ -55,12 +72,12 @@ export async function saveHighRiskAdditionalInfo(
     where: { customerId },
     create: {
       customerId,
-      ...data,
-      tanggalLahir: toDate(data.tanggalLahir),
+      ...clearedData,
+      tanggalLahir: toDate(data.tanggalLahir) ?? null,
     },
     update: {
-      ...data,
-      tanggalLahir: toDate(data.tanggalLahir),
+      ...clearedData,
+      tanggalLahir: toDate(data.tanggalLahir) ?? null,
     },
   });
 

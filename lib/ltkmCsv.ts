@@ -20,9 +20,19 @@ const LTKM_CSV_HEADER = [
   "Catatan",
 ];
 
-/** Bungkus tiap field dalam tanda kutip ganda, dobelkan tanda kutip internal (RFC 4180). */
+// Karakter yang bisa membuat Excel/Sheets menafsirkan sel sebagai formula
+// saat CSV dibuka (CSV/formula injection) — "nama" dan "catatan" berasal dari
+// input bebas notaris/data klien, jadi bisa saja diawali salah satu ini.
+const FORMULA_TRIGGER_CHARS = ["=", "+", "-", "@"];
+
+/** Bungkus tiap field dalam tanda kutip ganda, dobelkan tanda kutip internal
+ * (RFC 4180), dan cegah formula injection dengan prefix kutip tunggal kalau
+ * field diawali =, +, -, atau @. */
 function csvField(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
+  const safe = FORMULA_TRIGGER_CHARS.includes(value[0])
+    ? `'${value}`
+    : value;
+  return `"${safe.replace(/"/g, '""')}"`;
 }
 
 export function buildLtkmCsv(rows: LtkmExportRow[]): string {
