@@ -6,10 +6,16 @@ export type Bbox = { x0: number; y0: number; x1: number; y1: number };
 
 // FR-3 (Should) — confidence & bbox null kalau tidak ada word Tesseract yang
 // bisa dicocokkan ke rentang karakter guess ini (lihat mapWordsToRange).
+// `source` — "ocr" (Tesseract, default) atau "ai" (second opinion dari
+// lib/ocr/aiVisionAssist.ts, dipakai buat badge tiga-state di fields.tsx).
+// AI-sourced guess selalu bbox:null (vision model tidak mengembalikan
+// bounding box per-word seperti Tesseract, jadi cuplikan gambar tidak
+// tersedia untuk guess ini — lihat guard di OcrCroppedSnippet.tsx).
 export type FieldGuess = {
   value: string;
   confidence: number | null;
   bbox: Bbox | null;
+  source: "ocr" | "ai";
 };
 export type FieldGuesses = Record<string, FieldGuess>;
 
@@ -131,7 +137,8 @@ function mergeBbox(a: Bbox, b: Bbox): Bbox {
 export function extractFieldGuesses(
   rawText: string,
   labelMap: Record<string, string[]>,
-  words: OcrWord[] = []
+  words: OcrWord[] = [],
+  source: "ocr" | "ai" = "ocr"
 ): FieldGuesses {
   const normalized = rawText.replace(/\r\n/g, "\n");
   const lower = normalized.toLowerCase();
@@ -190,7 +197,7 @@ export function extractFieldGuesses(
         .reduce((acc, b) => (acc ? mergeBbox(acc, b) : b), null as Bbox | null);
     }
 
-    guesses[current.field] = { value, confidence, bbox };
+    guesses[current.field] = { value, confidence, bbox, source };
   }
 
   return guesses;

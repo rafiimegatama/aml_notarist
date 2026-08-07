@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import {
   useFieldArray,
   useWatch,
@@ -11,7 +12,9 @@ import {
   type UseFormRegister,
   type UseFormSetValue,
 } from "react-hook-form";
+import { Plus, Trash2, UserPlus } from "lucide-react";
 import { TextField, SelectField, FullRow } from "@/components/forms/fields";
+import { EmptyState } from "@/components/ui/empty-state";
 import { jenisIdentitasLabels, labelOptions } from "@/lib/labels";
 import { isForeignNational } from "@/lib/wna";
 import type { BeneficialOwnerFormValues } from "@/lib/validations";
@@ -60,28 +63,40 @@ export function BeneficialOwnerArrayField<T extends FormWithBeneficialOwners>({
   return (
     <div className="space-y-4">
       {fields.length === 0 && (
-        <p className="text-sm text-gray-500">
-          Belum ada Pemilik Manfaat ditambahkan. Bagian ini opsional.
-        </p>
-      )}
-      {fields.map((field, index) => (
-        <BeneficialOwnerRow
-          key={field.id}
-          control={control}
-          register={register}
-          setValue={setValue}
-          errors={errors}
-          index={index}
-          onRemove={() => remove(index)}
-          roleQuickSelect={roleQuickSelect}
+        <EmptyState
+          icon={UserPlus}
+          title="Belum ada Pemilik Manfaat ditambahkan"
+          description="Bagian ini opsional."
         />
-      ))}
+      )}
+      <AnimatePresence initial={false}>
+        {fields.map((field, index) => (
+          <motion.div
+            key={field.id}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+          >
+            <BeneficialOwnerRow
+              control={control}
+              register={register}
+              setValue={setValue}
+              errors={errors}
+              index={index}
+              onRemove={() => remove(index)}
+              roleQuickSelect={roleQuickSelect}
+            />
+          </motion.div>
+        ))}
+      </AnimatePresence>
       <button
         type="button"
         onClick={() => append(emptyBeneficialOwner as never)}
-        className="rounded-md border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+        className="btn btn-secondary px-4 py-2.5 text-sm"
       >
-        + Tambah Pemilik Manfaat
+        <Plus className="h-4 w-4" strokeWidth={2} />
+        Tambah Pemilik Manfaat
       </button>
     </div>
   );
@@ -116,11 +131,16 @@ function BeneficialOwnerRow<T extends FormWithBeneficialOwners>({
     register(`beneficialOwners.${index}.${name}` as FieldPath<T>);
 
   return (
-    <div className="rounded-md border border-gray-200 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-700">
-          {`Pemilik Manfaat #${index + 1}`}
-        </h3>
+    <div className="card p-6">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-subtle text-brand-hover">
+            <UserPlus className="h-4 w-4" strokeWidth={2} />
+          </span>
+          <h3 className="text-sm font-bold text-slate-900">
+            {`Pemilik Manfaat #${index + 1}`}
+          </h3>
+        </div>
         <button
           type="button"
           onClick={() => {
@@ -128,12 +148,13 @@ function BeneficialOwnerRow<T extends FormWithBeneficialOwners>({
               onRemove();
             }
           }}
-          className="text-sm text-red-600 hover:underline"
+          aria-label={`Hapus Pemilik Manfaat #${index + 1}`}
+          className="btn btn-ghost h-8 w-8 p-0 text-muted hover:bg-danger-subtle hover:text-danger"
         >
-          Hapus
+          <Trash2 className="h-4 w-4" strokeWidth={2} />
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
         <TextField
           label="Nama Lengkap"
           required
@@ -215,7 +236,7 @@ function BeneficialOwnerRow<T extends FormWithBeneficialOwners>({
                       { shouldValidate: true, shouldDirty: true }
                     )
                   }
-                  className="rounded-full border border-gray-300 px-3 py-1 text-xs text-gray-600 hover:bg-gray-100"
+                  className="badge badge-neutral hover:bg-brand-subtle hover:text-brand-hover"
                 >
                   {role}
                 </button>

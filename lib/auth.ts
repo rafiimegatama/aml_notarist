@@ -104,6 +104,19 @@ export function isValidSessionToken(token: string | undefined): boolean {
   return isValidSignedExpiring(token, SESSION_PREFIX);
 }
 
+/**
+ * Dipakai HANYA untuk UI (peringatan sesi akan habis, lihat
+ * components/layout/SessionExpiryWarning) — mengembalikan exp (epoch ms)
+ * dari token yang SUDAH divalidasi valid, atau null kalau tidak valid. Tidak
+ * pernah dipakai sebagai pengganti isValidSessionToken untuk keputusan akses.
+ */
+export function getSessionExpiryMs(token: string | undefined): number | null {
+  if (!isValidSessionToken(token)) return null;
+  const payload = token!.split(".")[0];
+  const exp = Number(payload.slice(SESSION_PREFIX.length));
+  return Number.isFinite(exp) ? exp : null;
+}
+
 // ------------------------------------------------------------------
 // Lupa PIN — verifikasi lewat Google Sign-In (lihat lib/googleOAuth.ts,
 // lib/actions/pinRecovery.ts, app/lock/forgot/). Dua token terpisah:

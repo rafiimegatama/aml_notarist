@@ -163,6 +163,7 @@ model Customer {
   highRiskAdditionalInfo  HighRiskAdditionalInfo?
   documents               CustomerDocument[]
   activityLog             ActivityLogEntry[]
+  case                    Case?
 }
 
 // ============================================================
@@ -521,4 +522,187 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// AI Processing Engine — provider-agnostic AI abstraction (lib/ai/).
+// Append-only request log, analogous to ActivityLogEntry: never blocks or
+// fails the caller, purely observability. NOT wired into the existing
+// Tesseract OCR flow (lib/ocr/*) or the deterministic Risk Assessment
+// scoring (lib/status.ts/lib/actions/riskAssessment.ts) — this is a
+// separate, additive capability layer. See lib/ai/config.ts for the
+// runtime-configurable settings (stored under AppSetting, not here).
+// ============================================================
+model AiRequestLog {
+  id         String   @id @default(cuid())
+  capability String // "ocr" | "vision" | "chat" | "extractDocument" | "extractIdentity" | "classifyDocument" | "summarize" | "generateRiskAssessment"
+  providerId String // "ollama" | "gemini" | ...
+  model      String
+  success    Boolean
+  latencyMs  Int
+  errorMessage String?
+  promptTokens     Int?
+  completionTokens Int?
+  estimatedCostUsd Float? // null untuk provider lokal (Ollama) — tidak ada biaya per-token
+  createdAt  DateTime @default(now())
+
+  // Kolom tambahan (nullable, additive) untuk AI Compliance Assistant
+  // (lib/ai/services/compliance.ts) — audit trail per rekomendasi AI di satu
+  // Case: versi prompt yang dipakai, ringkasan keyakinan, dan referensi chunk
+  // knowledge base yang dipakai untuk grounding (lihat KnowledgeChunk).
+  caseId             String?
+  promptVersion      String?
+  confidence         String? // "HIGH" | "MEDIUM" | "LOW"
+  knowledgeChunkIds  String? // JSON array of KnowledgeChunk.id yang dipakai untuk grounding jawaban ini
+
+  @@index([createdAt])
+  @@index([providerId])
+  @@index([caseId])
+}
+
+// ============================================================
+// AML Case Management — setiap Customer berisiko Tinggi otomatis dijadikan
+// Case (lihat lib/actions/case.ts: ensureCaseForHighRisk, dipanggil dari
+// saveRiskAssessment SETELAH riskCategory dihitung — TIDAK mengubah cara
+// riskCategory dihitung sama sekali, murni efek samping tambahan seperti
+// logActivity/computeAndPersistStatus yang sudah ada di titik yang sama).
+//
+// PRINSIP INTI: AI tidak pernah mengisi CaseDecision atau mengubah
+// CaseChecklist — kedua model itu HANYA ditulis oleh aksi manual notaris/
+// compliance officer (lib/actions/case.ts). Semua "pendapat" AI masuk ke
+// CaseAiFinding (read-only rekomendasi, tidak pernah dibaca balik sebagai
+// sumber kebenaran oleh alur mana pun).
+// ============================================================
+
+enum CaseStatus {
+  DRAFT
+  OCR_PROCESSING
+  RISK_ASSESSMENT
+  NEED_REVIEW
+  EDD_REQUIRED
+  EDD_IN_PROGRESS
+  WAITING_MANUAL_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+model Case {
+  id         String     @id @default(cuid())
+  customerId String     @unique
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status     CaseStatus @default(EDD_REQUIRED)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  checklist       CaseChecklist?
+  decision        CaseDecision?
+  aiFindings      CaseAiFinding[]
+  duplicateChecks CaseDuplicateCheck[]
+
+  @@index([status])
+}
+
+// Checklist manual FR-brief "Manual Review" — delapan item, semua Boolean,
+// default false. Reviewer mencentang satu per satu; CaseDecision hanya bisa
+// dibuat kalau seluruh item ini true (ditegakkan di lib/actions/case.ts,
+// bukan di skema — SQLite tidak punya cross-field CHECK constraint yang
+// nyaman dipakai di sini).
+model CaseChecklist {
+  id                       String   @id @default(cuid())
+  caseId                   String   @unique
+  case                     Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  identityVerified         Boolean  @default(false)
+  sourceOfFundsReviewed    Boolean  @default(false)
+  sourceOfWealthReviewed   Boolean  @default(false)
+  beneficialOwnerConfirmed Boolean  @default(false)
+  documentsVerified        Boolean  @default(false)
+  aiRecommendationReviewed Boolean  @default(false)
+  regulationReviewed       Boolean  @default(false)
+  updatedAt                DateTime @updatedAt
+}
+
+// Keputusan akhir — SELALU hasil aksi manusia (satu PIN bersama, FR-6B,
+// tanpa atribusi individual — sama seperti ActivityLogEntry). Tidak ada
+// kolom apa pun yang menandakan ini berasal dari AI, karena memang tidak
+// pernah boleh.
+model CaseDecision {
+  id        String   @id @default(cuid())
+  caseId    String   @unique
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  outcome   String // "APPROVED" | "REJECTED" | "NEED_MORE_DOCUMENTS" | "ARCHIVED"
+  notes     String?
+  decidedAt DateTime @default(now())
+}
+
+// Rekomendasi/temuan AI — SELALU sekadar saran (lihat komentar
+// RiskAssessmentSuggestion di lib/ai/provider.ts untuk prinsip yang sama).
+// evidence/sourceRefs disimpan sebagai JSON string (SQLite tidak punya tipe
+// JSON native di Prisma) supaya panel "View Evidence"/"View Source" di UI
+// bisa menampilkan kutipan asli, bukan cuma kesimpulan AI.
+model CaseAiFinding {
+  id         String   @id @default(cuid())
+  caseId     String
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  kind       String // "inconsistency" | "missing_document" | "edd_question" | "duplicate" | "summary" | "regulation_answer"
+  content    String
+  confidence String // "HIGH" | "MEDIUM" | "LOW"
+  evidence   String? // JSON: kutipan/field yang jadi dasar temuan
+  sourceRefs String? // JSON: [{ documentTitle, sectionLabel, pageLabel, chunkId }]
+  providerId String?
+  model      String?
+  dismissed  Boolean  @default(false) // reviewer bisa menandai "sudah ditinjau, tidak relevan" tanpa menghapus jejaknya
+  createdAt  DateTime @default(now())
+
+  @@index([caseId])
+}
+
+// Hasil tiap tahap pipeline deteksi duplikat (lib/actions/duplicateCheck.ts)
+// — exact match dan fuzzy match deterministik (lib/dedup.ts, lib/actions/
+// duplicateLookup.ts) DULU, baru AI semantic comparison untuk kandidat yang
+// masih ambigu. Tidak pernah menggabungkan/memblokir otomatis — cuma
+// rekomendasi untuk ditinjau reviewer.
+model CaseDuplicateCheck {
+  id                  String   @id @default(cuid())
+  caseId              String
+  case                Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  candidateCustomerId String
+  matchedFields       String // JSON array of string, mis. ["NIK", "Nama", "Tanggal Lahir"]
+  confidencePercent   Int
+  stage               String // "exact" | "fuzzy" | "ai_semantic"
+  recommendation      String
+  createdAt           DateTime @default(now())
+
+  @@index([caseId])
+}
+
+// ============================================================
+// Knowledge Base (RAG) — sumber regulasi/SOP yang jadi SATU-SATUNYA basis
+// jawaban AI Compliance Assistant (lib/ai/rag/). Retrieval lexical murni
+// (TF-IDF/BM25 dihitung saat query, lihat lib/ai/rag/retrieval.ts) —
+// sengaja TIDAK memakai vector DB/embedding API eksternal supaya AI
+// Assistant tetap bisa jalan offline (mode Local) dan hasilnya mudah
+// diperiksa manusia (retrieval murni berbasis kecocokan kata, bukan
+// black-box embedding).
+// ============================================================
+
+model KnowledgeDocument {
+  id         String   @id @default(cuid())
+  title      String
+  sourceType String // "PPATK" | "UU_TPPU" | "SOP_INTERNAL" | "CDD_GUIDELINE" | "EDD_GUIDELINE" | "UPLOADED_REGULATION"
+  createdAt  DateTime @default(now())
+
+  chunks KnowledgeChunk[]
+}
+
+model KnowledgeChunk {
+  id           String            @id @default(cuid())
+  documentId   String
+  document     KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sectionLabel String? // mis. "Section 5.3"
+  pageLabel    String? // mis. "Halaman 18"
+  content      String
+  createdAt    DateTime          @default(now())
+
+  @@index([documentId])
 }

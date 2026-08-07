@@ -1,12 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  User,
+  Building2,
+  Scale,
+  Briefcase,
+  Wallet,
+  Users,
+  FileSignature,
+  Handshake,
+  Landmark,
+  Gauge,
+  ShieldQuestion,
+  FileText,
+  TriangleAlert,
+  Info,
+  Printer,
+  Clock,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
   DetailSection,
   DetailItem,
   formatDate,
 } from "@/components/detail/DetailPrimitives";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { ExportToSheetButton } from "@/components/detail/ExportToSheetButton";
 import { CompletionChecklist } from "@/components/detail/CompletionChecklist";
 import { ActivityLogSection } from "@/components/detail/ActivityLogSection";
@@ -16,6 +36,7 @@ import { getRetentionReviewDate, RETENTION_YEARS } from "@/lib/retention";
 import { getNextReviewDue, isReviewOverdue } from "@/lib/reviewReminder";
 import { getActivityLog } from "@/lib/activityLog";
 import { MarkReviewedButton } from "@/components/detail/MarkReviewedButton";
+import { DocumentGallery } from "@/components/detail/DocumentGallery";
 import {
   customerTypeLabels,
   customerStatusLabels,
@@ -41,6 +62,12 @@ function yesNo(value: boolean | null | undefined): string | null {
   if (value === false) return "Tidak";
   return null;
 }
+
+const RISK_TONE: Record<string, BadgeTone> = {
+  TINGGI: "danger",
+  SEDANG: "warning",
+  RENDAH: "success",
+};
 
 export async function generateMetadata({
   params,
@@ -120,89 +147,101 @@ export default async function CddDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">
-            {displayName}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {customerTypeLabels[customer.type]} ·{" "}
-            <span
-              className={
-                customer.status === "COMPLETE"
-                  ? "font-medium text-green-700"
-                  : "font-medium text-amber-700"
-              }
-            >
+      <PageHeader
+        title={displayName}
+        description={`${customerTypeLabels[customer.type]} · Dibuat ${formatDate(customer.createdAt)}`}
+        icon={
+          customer.type === "KORPORASI"
+            ? Building2
+            : customer.type === "LEGAL_ARRANGEMENT"
+              ? Scale
+              : User
+        }
+        actions={
+          <>
+            <Badge tone={customer.status === "COMPLETE" ? "success" : "warning"}>
               {customerStatusLabels[customer.status]}
-            </span>{" "}
-            · Dibuat {formatDate(customer.createdAt)}
-          </p>
-          <p className="mt-0.5 text-xs text-gray-400">
-            Tinjau retensi data pada {formatDate(retentionReviewDate)} (FR-5,
-            asumsi {RETENTION_YEARS} tahun — konfirmasi ke penasihat hukum)
-          </p>
-          <p
-            className={
-              "mt-0.5 flex items-center gap-2 text-xs " +
-              (reviewOverdue ? "text-red-600 font-medium" : "text-gray-400")
-            }
-          >
-            <span>
-              Tinjau ulang berikutnya (PMPJ): {formatDate(nextReviewDue)}
-              {reviewOverdue ? " — jatuh tempo" : ""}
-            </span>
-            <MarkReviewedButton customerId={customer.id} />
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Link
-            href={`/cdd/${customer.id}/risk-assessment`}
-            className="btn btn-secondary px-4 py-2 text-sm"
-          >
-            {ra ? "Edit Risk Assessment" : "Lanjut ke Risk Assessment"}
-          </Link>
-          <Link
-            href={`/cdd/${customer.id}/pdf`}
-            className="btn btn-primary px-4 py-2 text-sm"
-          >
-            Export PDF
-          </Link>
-          <ExportToSheetButton customerId={customer.id} />
-        </div>
+            </Badge>
+            <Link
+              href={`/cdd/${customer.id}/risk-assessment`}
+              className="btn btn-secondary px-4 py-2 text-sm"
+            >
+              <Gauge className="h-4 w-4" strokeWidth={2} />
+              {ra ? "Edit Risk Assessment" : "Lanjut ke Risk Assessment"}
+            </Link>
+            <Link
+              href={`/cdd/${customer.id}/pdf`}
+              className="btn btn-primary px-4 py-2 text-sm"
+            >
+              <Printer className="h-4 w-4" strokeWidth={2} />
+              Export PDF
+            </Link>
+            <ExportToSheetButton customerId={customer.id} />
+          </>
+        }
+      />
+
+      <div className="-mt-4 flex flex-col gap-1.5 text-xs font-medium text-muted">
+        <p>
+          Tinjau retensi data pada {formatDate(retentionReviewDate)} (FR-5,
+          asumsi {RETENTION_YEARS} tahun — konfirmasi ke penasihat hukum)
+        </p>
+        <p
+          className={
+            "flex flex-wrap items-center gap-2 " +
+            (reviewOverdue ? "font-semibold text-[#b91c1c]" : "")
+          }
+        >
+          <Clock className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+          <span>
+            Tinjau ulang berikutnya (PMPJ): {formatDate(nextReviewDue)}
+            {reviewOverdue ? " — jatuh tempo" : ""}
+          </span>
+          <MarkReviewedButton customerId={customer.id} />
+        </p>
       </div>
 
       <CompletionChecklist breakdown={breakdown} />
 
       {customer.isLtkm && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
-          Ditandai sebagai LTKM (Laporan Transaksi Keuangan Mencurigakan) —
-          lihat bagian &quot;Pelaporan LTKM&quot; di bawah untuk catatan
-          konteksnya.
+        <div className="card flex items-center gap-3 border-danger-subtle bg-danger-subtle/40 p-4 text-sm font-semibold text-[#b91c1c]">
+          <TriangleAlert className="h-4 w-4 shrink-0" strokeWidth={2} />
+          <span>
+            Ditandai sebagai LTKM (Laporan Transaksi Keuangan Mencurigakan) —
+            lihat bagian &quot;Pelaporan LTKM&quot; di bawah untuk catatan
+            konteksnya.
+          </span>
         </div>
       )}
 
       {businessSectorEmpty && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Skor Bisnis (RefBusinessSectorScore) belum tersedia — Total Nilai
-          Risk Assessment belum bisa dianggap final untuk CDD manapun.
-          Lengkapi di halaman Referensi Data.
+        <div className="card flex items-center gap-3 border-warning-subtle bg-warning-subtle/40 p-4 text-sm font-semibold text-[#b45309]">
+          <Info className="h-4 w-4 shrink-0" strokeWidth={2} />
+          <span>
+            Skor Bisnis (RefBusinessSectorScore) belum tersedia — Total Nilai
+            Risk Assessment belum bisa dianggap final untuk CDD manapun.
+            Lengkapi di halaman Referensi Data.
+          </span>
         </div>
       )}
 
       {isHighRisk && customer.type === "PERORANGAN" && !eddDone && (
         <div
           id="edd"
-          className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          className="card flex flex-wrap items-center justify-between gap-4 border-danger-subtle bg-danger-subtle/40 p-4 text-sm font-semibold text-[#b91c1c]"
         >
-          <span>
-            Kategori Risiko <strong>Tinggi</strong> — Informasi Tambahan (EDD)
-            wajib diisi sebelum CDD ini dianggap lengkap.
+          <span className="flex items-center gap-3">
+            <TriangleAlert className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <span>
+              Kategori Risiko <strong>Tinggi</strong> — Informasi Tambahan
+              (EDD) wajib diisi sebelum CDD ini dianggap lengkap.
+            </span>
           </span>
           <Link
             href={`/cdd/${customer.id}/edd`}
-            className="btn btn-danger ml-4 shrink-0 px-3 py-1.5 text-xs"
+            className="btn btn-danger shrink-0 px-3 py-1.5 text-xs"
           >
+            <ShieldQuestion className="h-3.5 w-3.5" strokeWidth={2} />
             Isi Informasi Tambahan
           </Link>
         </div>
@@ -211,20 +250,23 @@ export default async function CddDetailPage({
       {isHighRisk && customer.type !== "PERORANGAN" && (
         <div
           id="edd"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          className="card flex items-start gap-3 border-danger-subtle bg-danger-subtle/40 p-4 text-sm font-semibold text-[#b91c1c]"
         >
-          EDD Korporasi/Legal Arrangement belum tersedia di sistem — proses
-          ini wajib ditangani manual di luar aplikasi sampai form EDD resmi
-          tersedia (Known Gap #2, lihat reference-data.md bagian 9 dan PRD
-          Fase 2 Bagian 7). Status CDD ini tidak akan otomatis menjadi
-          Lengkap.
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+          <span>
+            EDD Korporasi/Legal Arrangement belum tersedia di sistem — proses
+            ini wajib ditangani manual di luar aplikasi sampai form EDD resmi
+            tersedia (Known Gap #2, lihat reference-data.md bagian 9 dan PRD
+            Fase 2 Bagian 7). Status CDD ini tidak akan otomatis menjadi
+            Lengkap.
+          </span>
         </div>
       )}
 
       {/* ============ KORPORASI ============ */}
       {customer.type === "KORPORASI" && customer.corporateDetail && (
         <>
-          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa">
+          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa" icon={Building2}>
             <DetailItem label="Nama Korporasi" value={customer.corporateDetail.namaKorporasi} />
             <DetailItem label="Bentuk Korporasi" value={customer.corporateDetail.bentukKorporasi} />
             <DetailItem label="No. SK Pengesahan" value={customer.corporateDetail.noSkPengesahan} />
@@ -240,7 +282,7 @@ export default async function CddDetailPage({
             <DetailItem label="Alamat Lokasi Usaha" value={customer.corporateDetail.alamatLokasiUsaha} full />
           </DetailSection>
 
-          <DetailSection title="B. Informasi Kekayaan Korporasi">
+          <DetailSection title="B. Informasi Kekayaan Korporasi" icon={Wallet}>
             <DetailItem label="Sumber Dana" value={customer.corporateDetail.sumberDana} />
             <DetailItem label="Pendapatan Rata-Rata per Tahun" value={customer.corporateDetail.pendapatanRataRata} />
             <DetailItem label="Tujuan Transaksi" value={customer.corporateDetail.tujuanTransaksi} full />
@@ -251,7 +293,7 @@ export default async function CddDetailPage({
       {/* ============ PERORANGAN ============ */}
       {customer.type === "PERORANGAN" && customer.individualDetail && (
         <>
-          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa">
+          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa" icon={User}>
             <DetailItem label="Nama Lengkap" value={customer.individualDetail.namaLengkap} />
             <DetailItem label="Nama Alias" value={customer.individualDetail.namaAlias} />
             <DetailItem label="Jenis Identitas" value={jenisIdentitasLabels[customer.individualDetail.jenisIdentitas]} />
@@ -277,7 +319,7 @@ export default async function CddDetailPage({
             <DetailItem label="Alamat di Negara Asal" value={customer.individualDetail.alamatNegaraAsal} full />
           </DetailSection>
 
-          <DetailSection title="B. Informasi Pekerjaan dan Sumber Pendapatan">
+          <DetailSection title="B. Informasi Pekerjaan dan Sumber Pendapatan" icon={Briefcase}>
             <DetailItem
               label="Sumber Pendapatan/Kekayaan"
               value={
@@ -310,7 +352,7 @@ export default async function CddDetailPage({
       {/* ============ LEGAL ARRANGEMENT ============ */}
       {customer.type === "LEGAL_ARRANGEMENT" && customer.legalArrangementDetail && (
         <>
-          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa">
+          <DetailSection id="cdd-dasar" title="A. Informasi Dasar Pengguna Jasa" icon={Scale}>
             <DetailItem label="Nama" value={customer.legalArrangementDetail.nama} />
             <DetailItem
               label="Jenis Identitas"
@@ -333,7 +375,7 @@ export default async function CddDetailPage({
             <DetailItem label="Alamat" value={customer.legalArrangementDetail.alamat} full />
           </DetailSection>
 
-          <DetailSection title="B. Informasi Kekayaan">
+          <DetailSection title="B. Informasi Kekayaan" icon={Wallet}>
             <DetailItem label="Sumber Dana" value={customer.legalArrangementDetail.sumberDana} />
             <DetailItem label="Pendapatan Rata-Rata per Tahun" value={customer.legalArrangementDetail.pendapatanRataRata} />
             <DetailItem label="Tujuan Transaksi" value={customer.legalArrangementDetail.tujuanTransaksi} full />
@@ -346,18 +388,19 @@ export default async function CddDetailPage({
         id="beneficial-owner"
         title="Informasi Pemilik Manfaat (Beneficial Owner)"
         description={`${customer.beneficialOwners.length} orang`}
+        icon={Users}
       >
         {customer.beneficialOwners.length === 0 && (
-          <p className="text-sm text-gray-500 sm:col-span-2">
+          <p className="text-sm font-medium text-muted sm:col-span-2">
             Tidak ada Pemilik Manfaat tercatat.
           </p>
         )}
         {customer.beneficialOwners.map((bo, i) => (
           <div key={bo.id} className="sm:col-span-2">
-            <h3 className="text-sm font-semibold text-gray-700">
+            <h3 className="text-sm font-semibold text-slate-700">
               Pemilik Manfaat #{i + 1}
             </h3>
-            <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-3 border-t border-gray-100 pt-3 sm:grid-cols-2">
+            <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-3 border-t border-border-subtle pt-3 sm:grid-cols-2">
               <DetailItem label="Nama Lengkap" value={bo.namaLengkap} />
               <DetailItem label="Nama Alias" value={bo.namaAlias} />
               <DetailItem label="Jenis Identitas" value={bo.jenisIdentitas ? jenisIdentitasLabels[bo.jenisIdentitas] : null} />
@@ -376,7 +419,7 @@ export default async function CddDetailPage({
 
       {/* ============ Power of Attorney (Korporasi) ============ */}
       {customer.type === "KORPORASI" && customer.powerOfAttorney && (
-        <DetailSection id="power-of-attorney" title="D. Informasi Kuasa Korporasi">
+        <DetailSection id="power-of-attorney" title="D. Informasi Kuasa Korporasi" icon={FileSignature}>
           <DetailItem label="Hubungan Hukum Pengguna Jasa" value={hubunganHukumPengurusLabels[customer.powerOfAttorney.hubunganHukum]} />
           <DetailItem label="No. Surat Kuasa" value={customer.powerOfAttorney.noSuratKuasa} />
           <DetailItem label="Tanggal Surat Kuasa" value={formatDate(customer.powerOfAttorney.tanggalSuratKuasa)} />
@@ -401,18 +444,19 @@ export default async function CddDetailPage({
         <DetailSection
           title="D. Informasi Pihak dalam Legal Arrangement"
           description={`${customer.legalArrangementParties.length} pihak`}
+          icon={Handshake}
         >
           {customer.legalArrangementParties.length === 0 && (
-            <p className="text-sm text-gray-500 sm:col-span-2">
+            <p className="text-sm font-medium text-muted sm:col-span-2">
               Tidak ada pihak tercatat.
             </p>
           )}
           {customer.legalArrangementParties.map((party, i) => (
             <div key={party.id} className="sm:col-span-2">
-              <h3 className="text-sm font-semibold text-gray-700">
+              <h3 className="text-sm font-semibold text-slate-700">
                 Pihak #{i + 1}
               </h3>
-              <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-3 border-t border-gray-100 pt-3 sm:grid-cols-2">
+              <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-3 border-t border-border-subtle pt-3 sm:grid-cols-2">
                 <DetailItem label="Nama Lengkap" value={party.namaLengkap} />
                 <DetailItem label="Nama Alias" value={party.namaAlias} />
                 <DetailItem label="Jenis Identitas" value={party.jenisIdentitas ? jenisIdentitasLabels[party.jenisIdentitas] : null} />
@@ -433,14 +477,14 @@ export default async function CddDetailPage({
 
       {/* ============ Notary Service (semua tipe) ============ */}
       {customer.notaryService && (
-        <DetailSection id="notary-service" title="Informasi Jasa yang Diberikan">
+        <DetailSection id="notary-service" title="Informasi Jasa yang Diberikan" icon={Landmark}>
           <DetailItem label="Nama Notaris" value={customer.notaryService.namaNotaris} />
           <DetailItem label="Jasa yang Diberikan" value={customer.notaryService.jasaYangDiberikan} />
         </DetailSection>
       )}
 
       {/* ============ Risk Assessment ============ */}
-      <DetailSection id="risk-assessment" title="Risk Assessment — Analisa PEP & Skoring">
+      <DetailSection id="risk-assessment" title="Risk Assessment — Analisa PEP & Skoring" icon={Gauge}>
         <DetailItem label="Apakah Pengguna Jasa adalah PEP?" value={yesNo(ra?.isPep)} />
         <DetailItem label="Nama Lengkap PEP" value={ra?.namaLengkapPep} />
         <DetailItem label="PEP Lokal atau Asing" value={ra?.pepAsalNegara ? pepAsalNegaraLabels[ra.pepAsalNegara] : null} />
@@ -474,12 +518,23 @@ export default async function CddDetailPage({
           value={ra?.notaryServiceTypeScore ? `${ra.notaryServiceTypeScore.categoryName} (${ra.notaryServiceTypeScore.score})` : null}
         />
         <DetailItem label="Total Nilai" value={ra?.totalScore ?? "Belum final"} />
-        <DetailItem label="Kategori Risiko" value={riskCategory ? riskCategoryLabels[riskCategory] : "Belum final"} />
+        <DetailItem
+          label="Kategori Risiko"
+          value={
+            riskCategory ? (
+              <Badge tone={RISK_TONE[riskCategory] ?? "neutral"}>
+                {riskCategoryLabels[riskCategory]}
+              </Badge>
+            ) : (
+              "Belum final"
+            )
+          }
+        />
       </DetailSection>
 
       {/* ============ EDD ============ */}
       {customer.highRiskAdditionalInfo && (
-        <DetailSection id="edd" title="Informasi Tambahan — Berisiko Tinggi (EDD)">
+        <DetailSection id="edd" title="Informasi Tambahan — Berisiko Tinggi (EDD)" icon={ShieldQuestion}>
           <DetailItem label="Nama Lengkap" value={customer.highRiskAdditionalInfo.namaLengkap} />
           <DetailItem
             label="Jenis Identitas"
@@ -526,34 +581,23 @@ export default async function CddDetailPage({
 
       {/* ============ Dokumen Terlampir (foto/scan formulir cetak) ============ */}
       {customer.documents.length > 0 && (
-        <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Dokumen Terlampir
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Foto/scan formulir cetak yang diupload untuk OCR saat CDD ini
-            dibuat.
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {customer.documents.map((doc) => (
-              <a
-                key={doc.id}
-                href={`/api/documents/${doc.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block overflow-hidden rounded-md border border-gray-200 hover:border-blue-400"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- foto lokal dari disk, bukan aset yang perlu dioptimasi Next/Image */}
-                <img
-                  src={`/api/documents/${doc.id}`}
-                  alt={doc.fileName}
-                  className="h-32 w-full object-cover"
-                />
-                <span className="block truncate px-2 py-1 text-xs text-gray-600">
-                  {doc.fileName}
-                </span>
-              </a>
-            ))}
+        <section className="card p-6 sm:p-7">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-subtle text-brand-hover">
+              <FileText className="h-[18px] w-[18px]" strokeWidth={2} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 sm:text-lg">
+                Dokumen Terlampir
+              </h2>
+              <p className="mt-1 text-sm font-medium text-muted">
+                Foto/scan formulir cetak yang diupload untuk OCR saat CDD ini
+                dibuat.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6">
+            <DocumentGallery documents={customer.documents} />
           </div>
         </section>
       )}

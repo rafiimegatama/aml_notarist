@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Briefcase, CircleAlert, Search, User, UserPlus } from "lucide-react";
 import {
   individualFormSchema,
   type IndividualFormValues,
@@ -28,6 +29,8 @@ import {
   useOcrUnverifiedPaths,
 } from "@/components/forms/OcrFieldContext";
 import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
+import { useAutosaveDraft, loadAutosaveDraft, clearAutosaveDraft } from "@/lib/hooks/useAutosaveDraft";
+import { DraftRecoveryBanner } from "@/components/forms/DraftRecoveryBanner";
 import { applyFieldGuesses } from "@/lib/ocr/applyFieldGuesses";
 import { LABEL_MAPS } from "@/lib/ocr/extractFields";
 import {
@@ -81,6 +84,8 @@ const defaultValues: IndividualFormValues = {
   },
 };
 
+const AUTOSAVE_KEY = "notary-aml:draft:individual";
+
 export function IndividualForm({
   ocrDraft,
   prefill,
@@ -123,6 +128,7 @@ function IndividualFormInner({
     setValue,
     setError,
     setFocus,
+    reset,
     formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<IndividualFormValues, unknown, IndividualFormOutput>({
     resolver: zodResolver(individualFormSchema),
@@ -132,6 +138,21 @@ function IndividualFormInner({
   });
 
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
+
+  // Auto-save draft ke localStorage supaya isian tidak hilang kalau tab
+  // tertutup/refresh tidak sengaja — hanya ditawarkan untuk dipulihkan kalau
+  // TIDAK ada ocrDraft/prefill aktif (dua sumber itu sudah jadi starting
+  // point eksplisit dari aksi pengguna, draft lokal tidak boleh menimpanya).
+  const allValues = useWatch({ control });
+  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful);
+  const [draft, setDraft] = useState<{ savedAt: number; values: IndividualFormValues } | null>(null);
+  useEffect(() => {
+    if (ocrDraft || prefill) return;
+    void (async () => {
+      setDraft(loadAutosaveDraft<IndividualFormValues>(AUTOSAVE_KEY));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const kewarganegaraan = useWatch({
     control,
@@ -148,6 +169,7 @@ function IndividualFormInner({
 
   const onSubmit = handleSubmit(async (values: IndividualFormOutput) => {
     setFormError(null);
+    clearAutosaveDraft(AUTOSAVE_KEY);
     const result = await createIndividualCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
     if (!result.success) {
       setFormError(
@@ -180,20 +202,38 @@ function IndividualFormInner({
       {formError && (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="flex items-start gap-3 rounded-2xl border border-danger/20 bg-danger-subtle px-4 py-3.5 text-sm font-medium text-red-700"
         >
+          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger" strokeWidth={2} />
           {formError}
         </div>
+      )}
+
+      {draft && (
+        <DraftRecoveryBanner
+          savedAt={draft.savedAt}
+          onRestore={() => {
+            reset(draft.values);
+            setDraft(null);
+          }}
+          onDiscard={() => {
+            clearAutosaveDraft(AUTOSAVE_KEY);
+            setDraft(null);
+          }}
+        />
       )}
 
       {prefill && (
         <div
           role="status"
-          className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+          className="flex items-start gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5 text-sm text-blue-800"
         >
-          Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
-          <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
-          yang mungkin sudah berubah sebelum menyimpan.
+          <Search className="mt-0.5 h-5 w-5 shrink-0 text-brand-hover" strokeWidth={2} />
+          <p>
+            Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
+            <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
+            yang mungkin sudah berubah sebelum menyimpan.
+          </p>
         </div>
       )}
 
@@ -224,6 +264,7 @@ function IndividualFormInner({
       <SectionCard
         title="A. Informasi Dasar Pengguna Jasa"
         description="CDD Perorangan — Section 2.A"
+        icon={User}
       >
         <div>
           <TextField
@@ -358,6 +399,7 @@ function IndividualFormInner({
       <SectionCard
         title="B. Informasi Pekerjaan dan Sumber Pendapatan"
         description="CDD Perorangan — Section 2.B"
+        icon={Briefcase}
       >
         <div className="flex flex-col gap-4">
           <SelectField
@@ -427,6 +469,7 @@ function IndividualFormInner({
       <SectionCard
         title="C. Informasi Pemilik Manfaat (Beneficial Owner)"
         description="CDD Perorangan — Section 2.C. Opsional, bisa lebih dari satu."
+        icon={UserPlus}
       >
         <FullRow>
           <BeneficialOwnerArrayField<IndividualFormValues>

@@ -11,6 +11,7 @@ import {
 import { toDate, nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
 import type { ActionResult } from "@/lib/actions/shared";
 import { logActivity } from "@/lib/activityLog";
+import { advanceCaseAfterEdd } from "@/lib/actions/case";
 
 /** nullifyEmpty() turns "" into undefined so a bare `create` uses the column
  * default (null) — but this object is also spread into upsert's `update`
@@ -82,6 +83,7 @@ export async function saveHighRiskAdditionalInfo(
   });
 
   await computeAndPersistStatus(customerId);
+  await advanceCaseAfterEdd(customerId);
   await logActivity(
     customerId,
     existed ? "Informasi Tambahan (EDD) diperbarui" : "Informasi Tambahan (EDD) disimpan"

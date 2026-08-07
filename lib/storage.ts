@@ -19,3 +19,8 @@ export const HDD_SYNC_META_PATH = path.join(
 
 // FR-11 — salinan PDF otomatis saat status Customer berubah ke COMPLETE.
 export const PDF_ARCHIVE_DIR = path.join(process.cwd(), "storage", "archive");
+
+// Dashboard hero banner (gambar latar, dapat dikonfigurasi admin) — lihat
+// lib/actions/heroSettings.ts. Disimpan terpisah dari UPLOAD_DIR karena
+// bukan dokumen CDD (tidak tunduk retensi FR-5).
+export const HERO_DIR = path.join(process.cwd(), "storage", "hero");

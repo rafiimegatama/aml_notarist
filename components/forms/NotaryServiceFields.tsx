@@ -6,6 +6,7 @@ import type {
   FieldValues,
   UseFormRegister,
 } from "react-hook-form";
+import { Building } from "lucide-react";
 import { SectionCard, TextField } from "@/components/forms/fields";
 import type { NotaryServiceFormValues } from "@/lib/validations";
 
@@ -25,7 +26,7 @@ export function NotaryServiceFields<T extends FormWithNotaryService>({
     | FieldErrors<NotaryServiceFormValues>
     | undefined;
   return (
-    <SectionCard title="Informasi Jasa yang Diberikan">
+    <SectionCard title="Informasi Jasa yang Diberikan" icon={Building}>
       <TextField
         label="Nama Notaris"
         error={err?.namaNotaris}

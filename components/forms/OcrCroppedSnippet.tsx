@@ -50,13 +50,13 @@ export function OcrCroppedSnippet({
   if (!bbox) return null;
 
   return (
-    <div className="mt-1.5 inline-block rounded border border-gray-200 bg-gray-50 p-1">
+    <div className="mt-2 inline-block rounded-xl border border-border-subtle bg-canvas p-1.5 shadow-soft-sm">
       <canvas
         ref={canvasRef}
         style={{ maxWidth: MAX_DISPLAY_WIDTH_PX }}
-        className="rounded"
+        className="rounded-lg"
       />
-      <p className="mt-1 text-center text-[10px] text-gray-400">
+      <p className="mt-1 text-center text-[10px] font-medium text-muted">
         Cuplikan dari scan asli
       </p>
     </div>

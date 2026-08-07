@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Building2, CircleAlert, FileText, Search, UserPlus, Wallet } from "lucide-react";
 import {
   corporateFormSchema,
   type CorporateFormValues,
@@ -28,6 +29,8 @@ import {
   useOcrUnverifiedPaths,
 } from "@/components/forms/OcrFieldContext";
 import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
+import { useAutosaveDraft, loadAutosaveDraft, clearAutosaveDraft } from "@/lib/hooks/useAutosaveDraft";
+import { DraftRecoveryBanner } from "@/components/forms/DraftRecoveryBanner";
 import { applyFieldGuesses } from "@/lib/ocr/applyFieldGuesses";
 import { LABEL_MAPS } from "@/lib/ocr/extractFields";
 import {
@@ -80,6 +83,8 @@ const defaultValues: CorporateFormValues = {
   },
 };
 
+const AUTOSAVE_KEY = "notary-aml:draft:corporate";
+
 export function CorporateForm({
   ocrDraft,
   prefill,
@@ -123,6 +128,7 @@ function CorporateFormInner({
     setValue,
     setError,
     setFocus,
+    reset,
     formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<CorporateFormValues, unknown, CorporateFormOutput>({
     resolver: zodResolver(corporateFormSchema),
@@ -133,8 +139,20 @@ function CorporateFormInner({
 
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
+  const allValues = useWatch({ control });
+  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful);
+  const [draft, setDraft] = useState<{ savedAt: number; values: CorporateFormValues } | null>(null);
+  useEffect(() => {
+    if (ocrDraft || prefill) return;
+    void (async () => {
+      setDraft(loadAutosaveDraft<CorporateFormValues>(AUTOSAVE_KEY));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onSubmit = handleSubmit(async (values: CorporateFormOutput) => {
     setFormError(null);
+    clearAutosaveDraft(AUTOSAVE_KEY);
     const result = await createCorporateCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
     // Jika sukses, createCorporateCustomer memanggil redirect() dan tidak pernah sampai ke sini.
     if (!result.success) {
@@ -165,20 +183,38 @@ function CorporateFormInner({
       {formError && (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="flex items-start gap-3 rounded-2xl border border-danger/20 bg-danger-subtle px-4 py-3.5 text-sm font-medium text-red-700"
         >
+          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger" strokeWidth={2} />
           {formError}
         </div>
+      )}
+
+      {draft && (
+        <DraftRecoveryBanner
+          savedAt={draft.savedAt}
+          onRestore={() => {
+            reset(draft.values);
+            setDraft(null);
+          }}
+          onDiscard={() => {
+            clearAutosaveDraft(AUTOSAVE_KEY);
+            setDraft(null);
+          }}
+        />
       )}
 
       {prefill && (
         <div
           role="status"
-          className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+          className="flex items-start gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5 text-sm text-blue-800"
         >
-          Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
-          <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
-          yang mungkin sudah berubah sebelum menyimpan.
+          <Search className="mt-0.5 h-5 w-5 shrink-0 text-brand-hover" strokeWidth={2} />
+          <p>
+            Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
+            <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
+            yang mungkin sudah berubah sebelum menyimpan.
+          </p>
         </div>
       )}
 
@@ -209,6 +245,7 @@ function CorporateFormInner({
       <SectionCard
         title="A. Informasi Dasar Pengguna Jasa"
         description="CDD Korporasi — Section 1.A"
+        icon={Building2}
       >
         <div>
           <TextField
@@ -308,6 +345,7 @@ function CorporateFormInner({
       <SectionCard
         title="B. Informasi Kekayaan Korporasi"
         description="CDD Korporasi — Section 1.B"
+        icon={Wallet}
       >
         <TextField
           label="Sumber Dana"
@@ -334,6 +372,7 @@ function CorporateFormInner({
       <SectionCard
         title="C. Informasi Pemilik Manfaat (Beneficial Owner)"
         description="CDD Korporasi — Section 1.C. Opsional, bisa lebih dari satu."
+        icon={UserPlus}
       >
         <FullRow>
           <BeneficialOwnerArrayField<CorporateFormValues>
@@ -348,6 +387,7 @@ function CorporateFormInner({
       <SectionCard
         title="D. Informasi Kuasa Korporasi"
         description="CDD Korporasi — Section 1.D"
+        icon={FileText}
       >
         <SelectField
           label="Hubungan Hukum Pengguna Jasa"

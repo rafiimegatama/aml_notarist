@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowLeft, Info, ShieldQuestion } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { HighRiskAdditionalInfoForm } from "@/components/forms/HighRiskAdditionalInfoForm";
-import { customerTypeLabels } from "@/lib/labels";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { customerTypeLabels, riskCategoryLabels } from "@/lib/labels";
 import type { HighRiskAdditionalInfoValues } from "@/lib/validations";
 
 export const metadata: Metadata = {
@@ -31,16 +34,21 @@ export default async function HighRiskAdditionalInfoPage({
   if (customer.type !== "PERORANGAN") {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-semibold text-gray-900">
-          Informasi Tambahan (EDD)
-        </h1>
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Form EDD Korporasi/Institusi belum tersedia (lihat
-          reference-data.md bagian 9) — proses manual diperlukan untuk{" "}
-          {customerTypeLabels[customer.type]} berkategori risiko Tinggi.
+        <PageHeader title="Informasi Tambahan (EDD)" icon={ShieldQuestion} />
+        <div className="card flex items-center gap-3 border-warning-subtle bg-warning-subtle/40 p-4 text-sm font-semibold text-[#b45309]">
+          <Info className="h-4 w-4 shrink-0" strokeWidth={2} />
+          <span>
+            Form EDD Korporasi/Institusi belum tersedia (lihat
+            reference-data.md bagian 9) — proses manual diperlukan untuk{" "}
+            {customerTypeLabels[customer.type]} berkategori risiko Tinggi.
+          </span>
         </div>
-        <Link href={`/cdd/${id}`} className="text-sm text-blue-600 hover:underline">
-          &larr; Kembali ke detail CDD
+        <Link
+          href={`/cdd/${id}`}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-hover hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+          Kembali ke detail CDD
         </Link>
       </div>
     );
@@ -49,16 +57,22 @@ export default async function HighRiskAdditionalInfoPage({
   if (riskCategory !== "TINGGI") {
     return (
       <div className="space-y-6">
-        <h1 className="text-xl font-semibold text-gray-900">
-          Informasi Tambahan (EDD)
-        </h1>
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-          Informasi Tambahan hanya diperlukan untuk pengguna jasa berkategori
-          risiko Tinggi. Kategori Risiko saat ini:{" "}
-          {riskCategory ? riskCategory : "belum dinilai"}.
+        <PageHeader title="Informasi Tambahan (EDD)" icon={ShieldQuestion} />
+        <div className="card flex items-center gap-3 p-4 text-sm font-medium text-muted">
+          <Info className="h-4 w-4 shrink-0" strokeWidth={2} />
+          <span>
+            Informasi Tambahan hanya diperlukan untuk pengguna jasa
+            berkategori risiko Tinggi. Kategori Risiko saat ini:{" "}
+            {riskCategory ? riskCategoryLabels[riskCategory] : "belum dinilai"}
+            .
+          </span>
         </div>
-        <Link href={`/cdd/${id}`} className="text-sm text-blue-600 hover:underline">
-          &larr; Kembali ke detail CDD
+        <Link
+          href={`/cdd/${id}`}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-hover hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={2} />
+          Kembali ke detail CDD
         </Link>
       </div>
     );
@@ -86,14 +100,12 @@ export default async function HighRiskAdditionalInfoPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">
-          Informasi Tambahan (EDD)
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Wajib diisi karena Kategori Risiko pengguna jasa ini Tinggi.
-        </p>
-      </div>
+      <PageHeader
+        title="Informasi Tambahan (EDD)"
+        description="Wajib diisi karena Kategori Risiko pengguna jasa ini Tinggi."
+        icon={ShieldQuestion}
+        actions={<Badge tone="danger">{riskCategoryLabels.TINGGI}</Badge>}
+      />
       <HighRiskAdditionalInfoForm
         customerId={customer.id}
         initialValues={initialValues}

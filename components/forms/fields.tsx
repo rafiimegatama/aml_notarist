@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
 import { useOcrFieldState } from "@/components/forms/OcrFieldContext";
+import type { LucideIcon } from "lucide-react";
 
 type Registration = UseFormRegisterReturn;
 
@@ -11,7 +12,7 @@ type Registration = UseFormRegisterReturn;
 // mencolok (merah, bukan amber).
 const LOW_CONFIDENCE_THRESHOLD = 70;
 
-const DEFAULT_BORDER_CLASS = "border border-gray-300";
+const DEFAULT_BORDER_CLASS = "border border-slate-300";
 
 function ocrBorderClass(ocr: ReturnType<typeof useOcrFieldState>): string {
   if (!ocr || ocr.state === "confirmed") return DEFAULT_BORDER_CLASS;
@@ -29,7 +30,7 @@ function OcrBadge({ ocr }: { ocr: ReturnType<typeof useOcrFieldState> }) {
   return (
     <span
       className={
-        "ml-1.5 rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+        "ml-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
         (lowConfidence
           ? "bg-red-100 text-red-700"
           : "bg-amber-100 text-amber-700")
@@ -44,7 +45,7 @@ function OcrBadge({ ocr }: { ocr: ReturnType<typeof useOcrFieldState> }) {
 function ErrorText({ id, error }: { id: string; error?: FieldError }) {
   if (!error) return null;
   return (
-    <p id={id} role="alert" className="mt-1 text-sm text-red-600">
+    <p id={id} role="alert" className="mt-1.5 text-sm font-medium text-red-600">
       {error.message}
     </p>
   );
@@ -71,7 +72,7 @@ function Wrapper({
     <div>
       <label
         htmlFor={htmlFor}
-        className="block text-sm font-medium text-gray-700"
+        className="block text-sm font-semibold text-slate-700"
       >
         {label}
         {required && (
@@ -83,11 +84,11 @@ function Wrapper({
         {badge}
       </label>
       {hint && (
-        <p id={`${htmlFor}-hint`} className="text-xs text-gray-500">
+        <p id={`${htmlFor}-hint`} className="mt-0.5 text-xs text-muted">
           {hint}
         </p>
       )}
-      <div className="mt-1">{children}</div>
+      <div className="mt-1.5">{children}</div>
       <ErrorText id={`${htmlFor}-error`} error={error} />
     </div>
   );
@@ -95,9 +96,9 @@ function Wrapper({
 
 // "border" & warna border sengaja dipisah dari sini — ocrBorderClass()
 // mengganti keduanya sekaligus supaya tidak ada dua utility warna border
-// yang bersaing di className yang sama (mis. border-gray-300 vs border-red-400).
+// yang bersaing di className yang sama (mis. border-slate-300 vs border-red-400).
 const inputClass =
-  "block w-full rounded-md px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500";
+  "block w-full rounded-xl px-3.5 py-2.5 text-sm text-slate-900 shadow-soft-sm transition-colors placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:bg-slate-100 disabled:text-muted";
 
 function describedBy(
   id: string,
@@ -259,7 +260,7 @@ export function RadioGroupField({
   const errorId = `${registration.name}-error`;
   return (
     <fieldset aria-describedby={error ? errorId : undefined}>
-      <legend className="block text-sm font-medium text-gray-700">
+      <legend className="block text-sm font-semibold text-slate-700">
         {label}
         {required && (
           <span className="text-red-600" aria-hidden="true">
@@ -268,12 +269,18 @@ export function RadioGroupField({
           </span>
         )}
       </legend>
-      <div className="mt-1 flex gap-4">
+      <div className="mt-2 flex gap-5">
         {options.map((opt) => {
           const id = `${registration.name}-${opt.value}`;
           return (
-            <label key={opt.value} htmlFor={id} className="flex items-center gap-1.5 text-sm">
-              <input id={id} type="radio" value={opt.value} {...registration} />
+            <label key={id} htmlFor={id} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                id={id}
+                type="radio"
+                value={opt.value}
+                className="h-4 w-4 accent-brand"
+                {...registration}
+              />
               {opt.label}
             </label>
           );
@@ -287,19 +294,30 @@ export function RadioGroupField({
 export function SectionCard({
   title,
   description,
+  icon: Icon,
   children,
 }: {
   title: string;
   description?: string;
+  icon?: LucideIcon;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-      {description && (
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
-      )}
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <section className="card p-6 sm:p-7">
+      <div className="flex items-start gap-3">
+        {Icon && (
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-subtle text-brand-hover">
+            <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+          </span>
+        )}
+        <div>
+          <h2 className="text-base font-bold text-slate-900 sm:text-lg">{title}</h2>
+          {description && (
+            <p className="mt-1 text-sm font-medium text-muted">{description}</p>
+          )}
+        </div>
+      </div>
+      <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
         {children}
       </div>
     </section>

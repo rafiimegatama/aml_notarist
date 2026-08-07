@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, UserRoundCheck } from "lucide-react";
 import {
   highRiskAdditionalInfoSchema,
   type HighRiskAdditionalInfoValues,
@@ -79,8 +80,9 @@ export function HighRiskAdditionalInfoForm({
       {formError && (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="card flex items-center gap-3 border-danger-subtle bg-danger-subtle/40 p-4 text-sm font-semibold text-[#b91c1c]"
         >
+          <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
           {formError}
         </div>
       )}
@@ -88,6 +90,7 @@ export function HighRiskAdditionalInfoForm({
       <SectionCard
         title="A. Perorangan/Pribadi"
         description="Informasi Tambahan — Section 7.A"
+        icon={UserRoundCheck}
       >
         <TextField
           label="Nama Lengkap"

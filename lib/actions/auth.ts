@@ -7,6 +7,7 @@ import {
   SESSION_DURATION_HOURS,
   createSessionToken,
   getLockoutStatus,
+  isValidSessionToken,
   recordFailedAttempt,
   resetLockout,
   verifyPinHash,
@@ -81,4 +82,28 @@ export async function logout(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
   redirect("/lock");
+}
+
+/**
+ * "Perpanjang Sesi" — dipanggil dari SessionExpiryWarning saat notaris masih
+ * aktif menjelang sesi 10 jam habis. Mengeluarkan token baru lewat fungsi
+ * yang SAMA dengan login (createSessionToken), TIDAK menambah jalur otentikasi
+ * baru — hanya bisa dipanggil kalau cookie sesi yang sedang berjalan masih
+ * valid (defensif; proxy.ts sudah menjamin ini di semua request, tapi dicek
+ * ulang di sini karena ini fungsi publik).
+ */
+export async function extendSession(): Promise<{ success: boolean }> {
+  const cookieStore = await cookies();
+  const current = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  if (!isValidSessionToken(current)) {
+    return { success: false };
+  }
+  cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(), {
+    httpOnly: true,
+    secure: false, // aplikasi lokal, diakses via http://127.0.0.1
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_DURATION_HOURS * 60 * 60,
+  });
+  return { success: true };
 }

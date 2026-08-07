@@ -8,8 +8,42 @@
 // long-running supervised process should run, and requires `next build`
 // first (handled by the `up` npm script, not here, so this file stays a
 // pure PM2 config).
+// Ollama sengaja diinstal manual (bukan lewat package manager sistem) di
+// $HOME/ollama — instalasi resmi `install.sh` butuh sudo/root yang tidak
+// tersedia di mesin ini, jadi dipakai tarball resmi Ollama tanpa root,
+// diekstrak ke $HOME/ollama/{bin,lib}. Ini instalasi per-mesin (seperti PM2
+// sendiri), bukan bagian dari repo — kalau dijalankan di mesin lain, ulangi
+// langkah instalasi manual di SETUP.md sebelum PM2 bisa start proses ini.
+const os = require("os");
+const path = require("path");
+const OLLAMA_HOME = path.join(os.homedir(), "ollama");
+
 module.exports = {
   apps: [
+    {
+      name: "ollama-serve",
+      script: path.join(OLLAMA_HOME, "bin", "ollama"),
+      args: ["serve"],
+      cwd: OLLAMA_HOME,
+      exec_mode: "fork",
+      instances: 1,
+      autorestart: true,
+      min_uptime: "10s",
+      max_restarts: 20,
+      restart_delay: 2000,
+      watch: false,
+      env: {
+        // Library CUDA/ROCm ikut dibundel di dalam tarball resmi, bukan
+        // terinstal sistem-wide — harus dituntun eksplisit lewat
+        // LD_LIBRARY_PATH supaya GPU passthrough WSL2 terdeteksi.
+        OLLAMA_HOST: "127.0.0.1:11434",
+        LD_LIBRARY_PATH: path.join(OLLAMA_HOME, "lib", "ollama"),
+      },
+      out_file: "logs/pm2-ollama-out.log",
+      error_file: "logs/pm2-ollama-error.log",
+      merge_logs: true,
+      time: true,
+    },
     {
       name: "notary-aml",
       script: "node_modules/next/dist/bin/next",

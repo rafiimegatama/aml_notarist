@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Clock, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { customerTypeLabels } from "@/lib/labels";
 import { formatDate } from "@/components/detail/DetailPrimitives";
@@ -8,6 +9,9 @@ import {
   isPastRetentionReviewDate,
   RETENTION_YEARS,
 } from "@/lib/retention";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = {
   title: "Retensi Data",
@@ -34,69 +38,72 @@ export default async function AdminRetensiPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Retensi Data</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          FR-5 — daftar CDD yang sudah lewat tanggal tinjau retensi (asumsi{" "}
-          {RETENTION_YEARS} tahun sejak dibuat, lihat catatan di{" "}
-          <code>lib/retention.ts</code> — konfirmasi ke penasihat hukum
-          sebelum dijadikan acuan resmi). Ini laporan untuk ditinjau manual,
-          bukan penghapusan otomatis.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Retensi Data"
+        description={`FR-5 — daftar CDD yang sudah lewat tanggal tinjau retensi (asumsi ${RETENTION_YEARS} tahun sejak dibuat, lihat catatan di lib/retention.ts — konfirmasi ke penasihat hukum sebelum dijadikan acuan resmi). Ini laporan untuk ditinjau manual, bukan penghapusan otomatis.`}
+        icon={Clock}
+      />
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-gray-500">
-              <th className="px-4 py-3 font-medium">Nama</th>
-              <th className="px-4 py-3 font-medium">Tipe</th>
-              <th className="px-4 py-3 font-medium">Dibuat</th>
-              <th className="px-4 py-3 font-medium">Tinjau Retensi Sejak</th>
-              <th className="px-4 py-3 font-medium">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {overdue.map((c) => {
-              const name =
-                c.corporateDetail?.namaKorporasi ??
-                c.individualDetail?.namaLengkap ??
-                c.legalArrangementDetail?.nama ??
-                "(tanpa nama)";
-              return (
-                <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 text-gray-900">{name}</td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {customerTypeLabels[c.type]}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {formatDate(c.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-red-700">
-                    {formatDate(getRetentionReviewDate(c.createdAt))}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/cdd/${c.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Lihat Detail
-                    </Link>
-                  </td>
+      {overdue.length === 0 ? (
+        <div className="card">
+          <EmptyState
+            icon={Clock}
+            title="Belum ada CDD yang lewat tanggal tinjau retensi"
+            description="Semua CDD masih dalam periode retensi. Laporan ini akan terisi otomatis begitu ada yang lewat tanggal tinjau."
+          />
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border-subtle bg-slate-50/70 text-muted">
+                  <th className="px-5 py-3.5 font-semibold">Nama</th>
+                  <th className="px-5 py-3.5 font-semibold">Tipe</th>
+                  <th className="px-5 py-3.5 font-semibold">Dibuat</th>
+                  <th className="px-5 py-3.5 font-semibold">Tinjau Retensi Sejak</th>
+                  <th className="px-5 py-3.5 text-right font-semibold">Aksi</th>
                 </tr>
-              );
-            })}
-            {overdue.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
-                  Belum ada CDD yang lewat tanggal tinjau retensi.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {overdue.map((c) => {
+                  const name =
+                    c.corporateDetail?.namaKorporasi ??
+                    c.individualDetail?.namaLengkap ??
+                    c.legalArrangementDetail?.nama ??
+                    "(tanpa nama)";
+                  return (
+                    <tr key={c.id} className="transition-colors hover:bg-slate-50/70">
+                      <td className="px-5 py-3.5 font-medium text-slate-900">{name}</td>
+                      <td className="px-5 py-3.5 text-slate-600">
+                        {customerTypeLabels[c.type]}
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums text-muted">
+                        {formatDate(c.createdAt)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <Badge tone="danger">
+                          {formatDate(getRetentionReviewDate(c.createdAt))}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <Link
+                          href={`/cdd/${c.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-hover transition-colors hover:bg-brand-subtle"
+                        >
+                          <Eye className="h-4 w-4" strokeWidth={2} />
+                          Lihat Detail
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

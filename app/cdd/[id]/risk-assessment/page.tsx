@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Gauge } from "lucide-react";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { RiskAssessmentForm } from "@/components/forms/RiskAssessmentForm";
+import { PageHeader } from "@/components/ui/page-header";
 import type { RiskAssessmentValues } from "@/lib/validations";
 
 function boolToYesNo(value: boolean | null | undefined): "YA" | "TIDAK" | "" {
@@ -98,19 +100,16 @@ export default async function RiskAssessmentPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">
-          Risk Assessment
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Penilaian Tingkat Risiko untuk{" "}
-          {customer.corporateDetail?.namaKorporasi ??
-            customer.individualDetail?.namaLengkap ??
-            customer.legalArrangementDetail?.nama ??
-            "pengguna jasa ini"}
-          .
-        </p>
-      </div>
+      <PageHeader
+        title="Risk Assessment"
+        description={`Penilaian Tingkat Risiko untuk ${
+          customer.corporateDetail?.namaKorporasi ??
+          customer.individualDetail?.namaLengkap ??
+          customer.legalArrangementDetail?.nama ??
+          "pengguna jasa ini"
+        }.`}
+        icon={Gauge}
+      />
       <RiskAssessmentForm
         customerId={customer.id}
         initialValues={initialValues}

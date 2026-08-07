@@ -38,10 +38,10 @@ function ShortcutsHelpDialog({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-labelledby="shortcuts-dialog-title"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+        className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-soft-lg"
       >
         <div className="flex items-start justify-between gap-4">
-          <h2 id="shortcuts-dialog-title" className="text-lg font-semibold text-gray-900">
+          <h2 id="shortcuts-dialog-title" className="text-lg font-bold text-slate-900">
             Keyboard Shortcut
           </h2>
           <button
@@ -49,7 +49,7 @@ function ShortcutsHelpDialog({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Tutup"
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -66,12 +66,12 @@ function ShortcutsHelpDialog({ onClose }: { onClose: () => void }) {
             </svg>
           </button>
         </div>
-        <dl className="mt-4 space-y-3">
+        <dl className="mt-5 space-y-3">
           {SHORTCUTS.map((s) => (
             <div key={s.keys} className="flex items-center justify-between gap-4">
-              <dt className="text-sm text-gray-600">{s.description}</dt>
+              <dt className="text-sm font-medium text-slate-600">{s.description}</dt>
               <dd>
-                <kbd className="rounded border border-gray-300 bg-gray-50 px-2 py-1 font-mono text-xs text-gray-700">
+                <kbd className="rounded-lg border border-border-subtle bg-slate-50 px-2 py-1 font-mono text-xs text-slate-700">
                   {s.keys}
                 </kbd>
               </dd>

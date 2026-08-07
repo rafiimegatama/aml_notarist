@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { CircleAlert, LogIn, Scale } from "lucide-react";
 import { SESSION_COOKIE_NAME, isValidSessionToken } from "@/lib/auth";
 import { getGoogleOAuthConfig } from "@/lib/googleOAuth";
 
@@ -35,40 +36,57 @@ export default async function ForgotPinPage({
   const configured = !!getGoogleOAuthConfig();
 
   return (
-    <div className="mx-auto max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h1 className="text-lg font-semibold text-gray-900">Lupa PIN</h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Untuk keamanan, PIN hanya bisa direset setelah login dengan akun
-        Google yang sudah terdaftar untuk pemulihan.
-      </p>
-
-      {errorMessage && (
-        <p className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {errorMessage}
-        </p>
-      )}
-
-      <div className="mt-4">
-        {configured ? (
-          <a
-            href="/api/auth/google/start"
-            className="btn btn-primary w-full px-4 py-2 text-sm"
-          >
-            Masuk dengan Google
-          </a>
-        ) : (
-          <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Pemulihan PIN lewat Google belum dikonfigurasi. Lihat SETUP.md
-            untuk cara mengaturnya, atau reset PIN manual lewat file .env.
+    <div className="bg-watermark-grid flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
+      <div className="w-full max-w-sm rounded-3xl border border-border-subtle bg-surface p-8 shadow-soft-lg">
+        <div className="flex flex-col items-center text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-white shadow-soft-sm">
+            <Scale className="h-6 w-6" strokeWidth={2} />
+          </span>
+          <h1 className="mt-4 text-lg font-semibold text-slate-900">
+            Lupa PIN
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Untuk keamanan, PIN hanya bisa direset setelah login dengan akun
+            Google yang sudah terdaftar untuk pemulihan.
           </p>
-        )}
-      </div>
+        </div>
 
-      <p className="mt-4 text-center text-sm">
-        <Link href="/lock" className="text-blue-600 hover:underline">
-          Kembali ke halaman masuk
-        </Link>
-      </p>
+        {errorMessage && (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-danger-subtle px-3.5 py-2.5 text-sm text-danger">
+            <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+            <p>{errorMessage}</p>
+          </div>
+        )}
+
+        <div className="mt-6">
+          {configured ? (
+            <a
+              href="/api/auth/google/start"
+              className="btn btn-primary w-full px-4 py-2.5 text-sm"
+            >
+              <LogIn className="h-4 w-4" strokeWidth={2} />
+              Masuk dengan Google
+            </a>
+          ) : (
+            <div className="flex items-start gap-2.5 rounded-xl bg-warning-subtle px-3.5 py-2.5 text-sm text-amber-800">
+              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+              <p>
+                Pemulihan PIN lewat Google belum dikonfigurasi. Lihat SETUP.md
+                untuk cara mengaturnya, atau reset PIN manual lewat file .env.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <p className="mt-6 text-center text-sm">
+          <Link
+            href="/lock"
+            className="font-medium text-brand hover:underline"
+          >
+            Kembali ke halaman masuk
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

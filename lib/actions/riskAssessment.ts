@@ -12,6 +12,7 @@ import {
 import { nullifyEmpty, flattenZodError } from "@/lib/actions/shared";
 import type { ActionResult } from "@/lib/actions/shared";
 import { logActivity } from "@/lib/activityLog";
+import { ensureCaseForHighRisk } from "@/lib/actions/case";
 
 /** Radio "YA"/"TIDAK" → boolean. Dikonversi di sini (bukan di schema zod) agar
  * tipe input/output form persis sama — lihat catatan di lib/validations.ts. */
@@ -119,6 +120,13 @@ export async function saveRiskAssessment(
         riskCategory,
       },
     });
+
+    // Efek samping tambahan, sama seperti computeAndPersistStatus/logActivity
+    // di bawah — lihat komentar ensureCaseForHighRisk. TIDAK memengaruhi
+    // riskCategory/totalScore yang baru saja dihitung di atas.
+    if (riskCategory === "TINGGI") {
+      await ensureCaseForHighRisk(tx, customerId);
+    }
   });
 
   await computeAndPersistStatus(customerId);

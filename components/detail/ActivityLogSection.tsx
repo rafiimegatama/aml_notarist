@@ -1,3 +1,5 @@
+import { History } from "lucide-react";
+
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
@@ -17,20 +19,35 @@ export function ActivityLogSection({
   if (entries.length === 0) return null;
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">Riwayat Aktivitas</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        Log ringan tanpa atribusi user (satu PIN bersama kantor) — untuk
-        membantu menelusuri &ldquo;apa terjadi kapan&rdquo;, bukan audit
-        trail resmi.
-      </p>
-      <ol className="mt-4 space-y-2 border-l border-gray-200 pl-4">
-        {entries.map((entry) => (
-          <li key={entry.id} className="text-sm">
-            <span className="text-gray-900">{entry.description}</span>{" "}
-            <span className="text-gray-400">
-              — {formatDateTime(entry.createdAt)}
-            </span>
+    <section className="card p-6 sm:p-7">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-subtle text-brand-hover">
+          <History className="h-[18px] w-[18px]" strokeWidth={2} />
+        </span>
+        <div>
+          <h2 className="text-base font-bold text-slate-900 sm:text-lg">
+            Riwayat Aktivitas
+          </h2>
+          <p className="mt-1 text-sm font-medium text-muted">
+            Log ringan tanpa atribusi user (satu PIN bersama kantor) — untuk
+            membantu menelusuri &ldquo;apa terjadi kapan&rdquo;, bukan audit
+            trail resmi.
+          </p>
+        </div>
+      </div>
+      <ol className="mt-6 space-y-0">
+        {entries.map((entry, i) => (
+          <li key={entry.id} className="relative flex gap-3 pb-5 last:pb-0">
+            {i < entries.length - 1 && (
+              <span className="absolute left-[5px] top-3 h-full w-px bg-border-subtle" aria-hidden />
+            )}
+            <span className="relative mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-brand ring-4 ring-brand-subtle" />
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-medium text-slate-900">{entry.description}</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {formatDateTime(entry.createdAt)}
+              </p>
+            </div>
           </li>
         ))}
       </ol>

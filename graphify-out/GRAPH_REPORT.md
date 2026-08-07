@@ -1,26 +1,26 @@
-# Graph Report - notary_aml  (2026-08-05)
+# Graph Report - notary_aml  (2026-08-06)
 
 ## Corpus Check
-- 200 files · ~89,534 words
+- 214 files · ~96,527 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1730 nodes · 2426 edges · 120 communities (108 shown, 12 thin omitted)
+- 1795 nodes · 2568 edges · 111 communities (105 shown, 6 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 6 edges (avg confidence: 0.6)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6c97085f`
+- Built from commit: `0cf2a679`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - IndividualForm.tsx
-- retensi/page.tsx
+- reviewReminder.ts
 - [id]/page.tsx
-- riskAssessment.ts
+- RiskAssessmentForm.tsx
 - validations.ts
-- storage.ts
+- backup/page.tsx
 - duplicateLookup.ts
 - devDependencies
 - dependencies
@@ -28,8 +28,10 @@
 - lib/auth.ts
 - sheetsExport.ts
 - refData.ts
-- seed.ts
+- app/page.tsx
 - Data Referensi — Notary CDD & Risk Assessment WebApp
+- skeleton.tsx
+- CorporateForm.tsx
 - eslint.config.mjs
 - next.config.ts
 - postcss.config.mjs
@@ -37,7 +39,7 @@
 - Prisma 7 Driver Adapter Implementation Guide
 - Model Queries
 - Driver Adapters
-- LegalArrangementForm.tsx
+- fields.tsx
 - Upgrade to Prisma ORM 7
 - Relation Queries
 - Removed Features
@@ -59,7 +61,6 @@
 - prisma db seed
 - Prisma Compute
 - Environment Variables
-- RiskAssessmentForm.tsx
 - prisma db pull
 - prisma init
 - prisma migrate deploy
@@ -68,8 +69,7 @@
 - ESM and CommonJS Support
 - Constructor Options
 - Schema Changes
-- ltkm-export/route.ts
-- prisma.ts
+- formatDate
 - Transactions
 - Workflow
 - Prisma Compute Framework Readiness
@@ -79,7 +79,7 @@
 - Prisma Platform CLI App Deploy
 - MySQL Setup
 - management-api
-- app/page.tsx
+- ScanUploadPanel.tsx
 - sheetsFullSync.ts
 - prisma migrate diff
 - prisma migrate reset
@@ -97,7 +97,7 @@
 - CockroachDB Setup
 - decision-stay-or-migrate
 - console-and-connections
-- BeneficialOwnerArrayField.tsx
+- LegalArrangementForm.tsx
 - prisma migrate status
 - Prisma Compute Config
 - create-prisma Compute Flow
@@ -110,7 +110,6 @@
 - prisma mcp
 - client-api-mapping
 - Service Tokens
-- scripts
 - PIN Akses (FR-6B)
 - prisma debug
 - SDK and API Automation
@@ -118,17 +117,9 @@
 - verify-cutover-checklist
 - Prisma 7 Client Instantiation
 - DuplicateLookupPanel.tsx
-- status.ts
-- package.json
 - README.md
 - ActivityLogSection.tsx
 - AGENTS.md
-- eslint
-- google-auth-library
-- next
-- @prisma/adapter-better-sqlite3
-- @react-pdf/renderer
-- tesseract.js
 
 ## God Nodes (most connected - your core abstractions)
 1. `prisma` - 27 edges
@@ -138,9 +129,9 @@
 5. `Prisma Client API Reference` - 14 edges
 6. `Prisma Compute Framework Readiness` - 14 edges
 7. `Upgrade to Prisma ORM 7` - 14 edges
-8. `logActivity()` - 13 edges
-9. `Prisma Platform CLI App Deploy` - 13 edges
-10. `PRD — Notary CDD & Risk Assessment WebApp: Phase 2 Improvements` - 13 edges
+8. `formatDate()` - 13 edges
+9. `PageHeader()` - 13 edges
+10. `logActivity()` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `AdminLtkmPage()` --calls--> `formatDate()`  [EXTRACTED]
@@ -157,67 +148,75 @@
 ## Import Cycles
 - None detected.
 
-## Communities (120 total, 12 thin omitted)
+## Communities (111 total, 6 thin omitted)
 
 ### Community 0 - "IndividualForm.tsx"
-Cohesion: 0.12
-Nodes (23): CorporateFormInner(), defaultValues, hubunganHukumOptions, jenisIdentitasOptions, defaultValues, IndividualFormInner(), jenisIdentitasOptions, jenisKelaminOptions (+15 more)
+Cohesion: 0.11
+Nodes (20): BeneficialOwnerArrayField(), BeneficialOwnerRow(), emptyBeneficialOwner, FormWithBeneficialOwners, jenisIdentitasOptions, SelectField(), defaultValues, jenisIdentitasOptions (+12 more)
 
-### Community 1 - "retensi/page.tsx"
-Cohesion: 0.21
-Nodes (13): AdminRetensiPage(), metadata, CddDetailPage(), yesNo(), getActivityLog(), addYearsClamped(), getRetentionReviewDate(), isPastRetentionReviewDate() (+5 more)
+### Community 1 - "reviewReminder.ts"
+Cohesion: 0.22
+Nodes (12): AdminRetensiPage(), CddDetailPage(), yesNo(), getActivityLog(), addYearsClamped(), getRetentionReviewDate(), isPastRetentionReviewDate(), RETENTION_YEARS (+4 more)
 
 ### Community 2 - "[id]/page.tsx"
-Cohesion: 0.14
-Nodes (23): CompletionChecklist(), Row, CddDocument(), CustomerWithRelations, fmtDate(), styles, yesNo(), customerStatusLabels (+15 more)
+Cohesion: 0.11
+Nodes (26): RISK_TONE, CompletionChecklist(), Row, LtkmPanel(), MarkReviewedButton(), CddDocument(), CustomerWithRelations, fmtDate() (+18 more)
 
-### Community 3 - "riskAssessment.ts"
-Cohesion: 0.27
-Nodes (16): createCorporateCustomer(), createIndividualCustomer(), createLegalArrangementCustomer(), attachDraftDocument(), nullToClear(), saveHighRiskAdditionalInfo(), nullToClear(), saveRiskAssessment() (+8 more)
+### Community 3 - "RiskAssessmentForm.tsx"
+Cohesion: 0.08
+Nodes (47): boolToYesNo(), RiskAssessmentPage(), RadioGroupField(), pepAsalNegaraOptions, pepHubunganOptions, pepJabatanOptions, RefScoreOption, RISK_TONE (+39 more)
 
 ### Community 4 - "validations.ts"
-Cohesion: 0.06
-Nodes (35): beneficialOwnerSchema, corporateDetailSchema, CorporateFormOutput, corporateFormSchema, hubunganHukumPengurusValues, individualDetailSchema, IndividualFormOutput, individualFormSchema (+27 more)
+Cohesion: 0.07
+Nodes (27): beneficialOwnerSchema, corporateDetailSchema, hubunganHukumPengurusValues, individualDetailSchema, jenisHighRiskCustomerValues, jenisIdentitasEddValues, jenisIdentitasValues, jenisKelaminValues (+19 more)
 
-### Community 5 - "storage.ts"
+### Community 5 - "backup/page.tsx"
 Cohesion: 0.09
 Nodes (25): AdminBackupPage(), formatDateTime(), metadata, BackupPanel(), formatDateTime(), SheetsFullSyncPanel(), TAB_LABELS, register() (+17 more)
 
 ### Community 6 - "duplicateLookup.ts"
-Cohesion: 0.12
-Nodes (27): metadata, NewCorporateCddPage(), metadata, NewLegalArrangementCddPage(), metadata, NewIndividualCddPage(), CorporateForm(), IndividualForm() (+19 more)
+Cohesion: 0.20
+Nodes (18): metadata, NewCorporateCddPage(), NewLegalArrangementCddPage(), metadata, NewIndividualCddPage(), CorporateForm(), IndividualForm(), loadDraftDocument() (+10 more)
 
 ### Community 7 - "devDependencies"
-Cohesion: 0.10
-Nodes (21): dotenv, eslint-config-next, devDependencies, dotenv, eslint-config-next, tailwindcss, @tailwindcss/postcss, tsx (+13 more)
+Cohesion: 0.05
+Nodes (41): dotenv, eslint, eslint-config-next, devDependencies, dotenv, eslint, eslint-config-next, pm2 (+33 more)
 
 ### Community 8 - "dependencies"
-Cohesion: 0.11
-Nodes (19): archiver, better-sqlite3, @hookform/resolvers, dependencies, archiver, better-sqlite3, @hookform/resolvers, prisma (+11 more)
+Cohesion: 0.06
+Nodes (33): archiver, better-sqlite3, framer-motion, google-auth-library, @hookform/resolvers, lucide-react, next, dependencies (+25 more)
 
 ### Community 9 - "compilerOptions"
 Cohesion: 0.07
 Nodes (28): dom, dom.iterable, esnext, **/*.mts, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules (+20 more)
 
 ### Community 10 - "lib/auth.ts"
-Cohesion: 0.06
-Nodes (57): GET(), GET(), geistMono, geistSans, metadata, ERROR_MESSAGES, ForgotPinPage(), metadata (+49 more)
+Cohesion: 0.05
+Nodes (61): GET(), GET(), geistMono, inter, metadata, ERROR_MESSAGES, ForgotPinPage(), metadata (+53 more)
 
 ### Community 11 - "sheetsExport.ts"
-Cohesion: 0.16
-Nodes (24): ExportToSheetButton(), exportCustomerToSheet(), ExportResult, HEADERS, LAST_COLUMN, rewriteTab(), syncAllDetailTabsToSheet(), appendRange() (+16 more)
+Cohesion: 0.17
+Nodes (23): ExportToSheetButton(), exportCustomerToSheet(), ExportResult, HEADERS, LAST_COLUMN, rewriteTab(), syncAllDetailTabsToSheet(), appendRange() (+15 more)
 
 ### Community 12 - "refData.ts"
 Cohesion: 0.22
 Nodes (14): metadata, AdminRefTable(), RefRow, addRefScoreRow(), getDelegate(), isValidTableKey(), parseCategoryAndScore(), RefRowActionResult (+6 more)
 
-### Community 13 - "seed.ts"
-Cohesion: 0.29
-Nodes (7): businessSectorScores, countryScores, main(), notaryServiceTypeScores, regionScores, seedRefTable(), userProfileScores
+### Community 13 - "app/page.tsx"
+Cohesion: 0.13
+Nodes (18): metadata, metadata, metadata, DashboardPage(), firstOrUndefined(), isSameDay(), missingSectionsLabel(), RISK_TONE (+10 more)
 
 ### Community 14 - "Data Referensi — Notary CDD & Risk Assessment WebApp"
 Cohesion: 0.06
 Nodes (30): 1. CDD Korporasi, 2. CDD Perorangan, 3. CDD Perikatan Lainnya (Legal Arrangement), 4. Risk Assessment — Analisa PEP (Politically Exposed Person), 5. Risk Assessment — Tabel Referensi Skor, 6. Formula Skoring & Kategori Risiko, 7. Informasi Tambahan — Pengguna Jasa Berisiko Tinggi (Enhanced Due Diligence), 8. Model Data yang Disarankan (ringkas — untuk konteks Step 2 build) (+22 more)
+
+### Community 15 - "skeleton.tsx"
+Cohesion: 0.36
+Nodes (3): Skeleton(), SkeletonCard(), SkeletonTable()
+
+### Community 18 - "CorporateForm.tsx"
+Cohesion: 0.18
+Nodes (10): defaultValues, hubunganHukumOptions, jenisIdentitasOptions, OcrCroppedSnippet(), OcrReviewGate(), CorporatePrefill, Bbox, CorporateFormOutput (+2 more)
 
 ### Community 24 - "Prisma 7 Driver Adapter Implementation Guide"
 Cohesion: 0.07
@@ -231,9 +230,9 @@ Nodes (27): aggregate, Aggregation Operations, Atomic operations, count, create,
 Cohesion: 0.07
 Nodes (27): Accept self-signed certificates, After (v7), Available Adapters, Before (v6), Configuration, Connection Pool Configuration, Driver Adapters, Installation (+19 more)
 
-### Community 27 - "LegalArrangementForm.tsx"
-Cohesion: 0.14
-Nodes (20): describedBy(), FullRow(), ocrBorderClass(), Registration, SectionCard(), SelectField(), TextAreaField(), TextField() (+12 more)
+### Community 27 - "fields.tsx"
+Cohesion: 0.19
+Nodes (11): describedBy(), FullRow(), ocrBorderClass(), Registration, SectionCard(), TextAreaField(), TextField(), FormWithNotaryService (+3 more)
 
 ### Community 28 - "Upgrade to Prisma ORM 7"
 Cohesion: 0.08
@@ -252,8 +251,8 @@ Cohesion: 0.08
 Nodes (23): 1. Background, 2. Goals, 2A. Business Sector Score Table (Tabel B), 2B. EDD Form for Korporasi / Legal Arrangement, 3. Non-Goals (explicit scope exclusions), 4. Requirements, 5. Additional Recommendations — Expert Solution Analyst Perspective, 6. Prioritization Summary (+15 more)
 
 ### Community 32 - "document.ts"
-Cohesion: 0.14
-Nodes (19): ALLOWED_MIME, DraftDocument, uploadAndExtractDocument(), UploadOcrResult, computeWordOffsets(), CORPORATE_LABEL_MAP, escapeRegExp(), extractFieldGuesses() (+11 more)
+Cohesion: 0.11
+Nodes (23): OcrFieldContext, OcrFieldContextValue, OcrFieldProvider(), OcrFieldState, ALLOWED_MIME, DraftDocument, uploadAndExtractDocument(), UploadOcrResult (+15 more)
 
 ### Community 33 - "Raw Queries"
 Cohesion: 0.09
@@ -319,10 +318,6 @@ Nodes (18): 1. Command Verification, 2. Auth and Workspace Selection, 3. Framewo
 Cohesion: 0.11
 Nodes (17): 1. Install dotenv, 2. Import in prisma.config.ts, Application Code, Bun Users, CI/CD Considerations, Entry point, Environment Variables, Multiple .env Files (+9 more)
 
-### Community 49 - "RiskAssessmentForm.tsx"
-Cohesion: 0.15
-Nodes (14): boolToYesNo(), RiskAssessmentPage(), RadioGroupField(), pepAsalNegaraOptions, pepHubunganOptions, pepJabatanOptions, RefScoreOption, RiskAssessmentForm() (+6 more)
-
 ### Community 50 - "prisma db pull"
 Cohesion: 0.12
 Nodes (16): Basic introspection, Command, Examples, Force overwrite, Generated Schema Example, MongoDB Introspection, Options, Post-Introspection Cleanup (+8 more)
@@ -355,13 +350,9 @@ Nodes (15): accelerateUrl (For Accelerate users), adapter (Required for the SQL 
 Cohesion: 0.12
 Nodes (15): 1. Provider name, 2. Output is required, 3. engineType changed, 4. moduleFormat is explicit when needed, After Schema Changes, Datasource Block, Example Output Paths, Generated Entrypoints (+7 more)
 
-### Community 58 - "ltkm-export/route.ts"
-Cohesion: 0.20
-Nodes (12): AdminLtkmPage(), metadata, GET(), DetailItem(), DetailSection(), formatDate(), RFC-4180, buildLtkmCsv() (+4 more)
-
-### Community 59 - "prisma.ts"
-Cohesion: 0.23
-Nodes (8): LtkmPanel(), MarkReviewedButton(), setLtkmFlag(), markCustomerReviewed(), logActivity(), adapter, globalForPrisma, prisma
+### Community 58 - "formatDate"
+Cohesion: 0.16
+Nodes (14): AdminLtkmPage(), GET(), DetailItem(), DetailSection(), formatDate(), DocumentGallery(), GalleryDocument, UploadEmptyState() (+6 more)
 
 ### Community 60 - "Transactions"
 Cohesion: 0.13
@@ -399,13 +390,13 @@ Nodes (12): 1. Schema Configuration, 2. Config Configuration, 3. Environment Var
 Cohesion: 0.15
 Nodes (12): API exploration, Authentication methods, Base URL, Common endpoints, management-api, Notes, OAuth flow summary, Priority (+4 more)
 
-### Community 69 - "app/page.tsx"
-Cohesion: 0.22
-Nodes (11): DashboardPage(), firstOrUndefined(), missingSectionsLabel(), riskCategoryOptions, statusOptions, typeOptions, NEW_CDD_ROUTE, ScanUploadPanel() (+3 more)
+### Community 69 - "ScanUploadPanel.tsx"
+Cohesion: 0.15
+Nodes (14): Dropzone(), DropzoneProps, FileCard(), FileCardProps, UploadPreviewModal(), UploadPreviewProps, UploadProgress(), STATE_META (+6 more)
 
 ### Community 70 - "sheetsFullSync.ts"
-Cohesion: 0.29
-Nodes (11): ALL_DETAIL_TABS, TAB_ACTIVITY_LOG, TAB_BENEFICIAL_OWNERS, TAB_CDD_KORPORASI, TAB_CDD_PERIKATAN_LAINNYA, TAB_CDD_PERORANGAN, TAB_EDD_BERISIKO_TINGGI, TAB_KUASA_KORPORASI (+3 more)
+Cohesion: 0.26
+Nodes (12): SheetsConfig, ALL_DETAIL_TABS, TAB_ACTIVITY_LOG, TAB_BENEFICIAL_OWNERS, TAB_CDD_KORPORASI, TAB_CDD_PERIKATAN_LAINNYA, TAB_CDD_PERORANGAN, TAB_EDD_BERISIKO_TINGGI (+4 more)
 
 ### Community 71 - "prisma migrate diff"
 Cohesion: 0.17
@@ -444,8 +435,8 @@ Cohesion: 0.18
 Nodes (10): api-basics, Base URL, Collection, Error codes by HTTP status, Error Responses, Pagination, Resource ID Prefixes, Response Envelope (+2 more)
 
 ### Community 80 - "HighRiskAdditionalInfoForm.tsx"
-Cohesion: 0.22
-Nodes (8): metadata, HighRiskAdditionalInfoForm(), jenisHighRiskCustomerOptions, jenisIdentitasOptions, penghasilanOptions, sumberKekayaanOptions, tujuanTransaksiOptions, HighRiskAdditionalInfoValues
+Cohesion: 0.16
+Nodes (15): CorporateFormInner(), HighRiskAdditionalInfoForm(), jenisHighRiskCustomerOptions, jenisIdentitasOptions, penghasilanOptions, sumberKekayaanOptions, tujuanTransaksiOptions, IndividualFormInner() (+7 more)
 
 ### Community 81 - "prisma format"
 Cohesion: 0.20
@@ -471,9 +462,9 @@ Nodes (9): Bad, Blocker checks before migrating, decision-stay-or-migrate, Good,
 Cohesion: 0.20
 Nodes (9): Adapter choices, Connection setup, console-and-connections, Console workflow, Linking an existing project, Local Studio, Priority, References (+1 more)
 
-### Community 87 - "BeneficialOwnerArrayField.tsx"
-Cohesion: 0.27
-Nodes (8): BeneficialOwnerArrayField(), BeneficialOwnerRow(), emptyBeneficialOwner, FormWithBeneficialOwners, jenisIdentitasOptions, BeneficialOwnerFormValues, DOMESTIC_VALUES, isForeignNational()
+### Community 87 - "LegalArrangementForm.tsx"
+Cohesion: 0.13
+Nodes (16): metadata, defaultValues, jenisIdentitasOptions, LegalArrangementForm(), emptyParty, FormWithParties, jenisIdentitasOptions, LegalArrangementPartyArrayField() (+8 more)
 
 ### Community 88 - "prisma migrate status"
 Cohesion: 0.22
@@ -523,13 +514,9 @@ Nodes (7): Bad, client-api-mapping, Good, Priority, References, The mapping, Why
 Cohesion: 0.25
 Nodes (7): auth, Creating a service token, OAuth 2.0 (for user-scoped access), Security practices, Service Tokens, Token scope, Using a service token
 
-### Community 100 - "scripts"
-Cohesion: 0.25
-Nodes (8): scripts, build, dev, dev:lan, lint, start, start:lan, sync:sheets
-
 ### Community 101 - "PIN Akses (FR-6B)"
-Cohesion: 0.25
-Nodes (7): Keamanan Data — Rekomendasi Enkripsi (FR-5), Lupa PIN — reset lewat Google Sign-In, Mengatur PIN pertama kali, Percobaan salah / terkunci, PIN Akses (FR-6B), Reset manual (fallback, tanpa Google), Setup — Konfigurasi Lokal
+Cohesion: 0.18
+Nodes (10): Keamanan Data — Rekomendasi Enkripsi (FR-5), Lupa PIN — reset lewat Google Sign-In, Mengatur PIN pertama kali, Menjalankan App Selalu Aktif (PM2), Percobaan salah / terkunci, Perintah (satu baris, sama persis di cmd.exe maupun bash/git-bash), PIN Akses (FR-6B), Port & Host Standar (+2 more)
 
 ### Community 102 - "prisma debug"
 Cohesion: 0.29
@@ -552,40 +539,32 @@ Cohesion: 0.29
 Nodes (6): Basic instantiation, Common mistakes, Key rules, Prisma 7 Client Instantiation, Required packages, Usage in application code
 
 ### Community 108 - "DuplicateLookupPanel.tsx"
-Cohesion: 0.33
-Nodes (4): metadata, options, DuplicateLookupPanel(), NEW_CDD_ROUTE
-
-### Community 109 - "status.ts"
-Cohesion: 0.38
-Nodes (5): archiveCddPdf(), CustomerForStatus, deriveCompletionBreakdown(), getCompletionBreakdown(), STATUS_QUERY_INCLUDE
-
-### Community 110 - "package.json"
-Cohesion: 0.50
-Nodes (3): name, private, version
+Cohesion: 0.29
+Nodes (5): metadata, options, DuplicateLookupPanel(), NEW_CDD_ROUTE, DuplicateCandidate
 
 ### Community 111 - "README.md"
 Cohesion: 0.50
 Nodes (3): Deploy on Vercel, Getting Started, Learn More
 
 ## Knowledge Gaps
-- **1020 isolated node(s):** `metadata`, `metadata`, `metadata`, `metadata`, `metadata` (+1015 more)
+- **1039 isolated node(s):** `metadata`, `metadata`, `metadata`, `metadata`, `metadata` (+1034 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **12 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `prisma` connect `prisma.ts` to `document.ts`, `retensi/page.tsx`, `[id]/page.tsx`, `riskAssessment.ts`, `validations.ts`, `storage.ts`, `app/page.tsx`, `duplicateLookup.ts`, `sheetsFullSync.ts`, `lib/auth.ts`, `sheetsExport.ts`, `refData.ts`, `status.ts`, `seed.ts`, `HighRiskAdditionalInfoForm.tsx`, `RiskAssessmentForm.tsx`, `ltkm-export/route.ts`?**
-  _High betweenness centrality (0.020) - this node is a cross-community bridge._
-- **Why does `jenisIdentitasLabels` connect `LegalArrangementForm.tsx` to `IndividualForm.tsx`, `[id]/page.tsx`, `sheetsFullSync.ts`, `BeneficialOwnerArrayField.tsx`?**
+- **Why does `prisma` connect `RiskAssessmentForm.tsx` to `document.ts`, `[id]/page.tsx`, `backup/page.tsx`, `duplicateLookup.ts`, `sheetsFullSync.ts`, `lib/auth.ts`, `sheetsExport.ts`, `refData.ts`, `app/page.tsx`, `formatDate`?**
+  _High betweenness centrality (0.019) - this node is a cross-community bridge._
+- **Why does `jenisIdentitasLabels` connect `LegalArrangementForm.tsx` to `IndividualForm.tsx`, `[id]/page.tsx`, `CorporateForm.tsx`, `sheetsFullSync.ts`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
-- **Why does `UPLOAD_DIR` connect `storage.ts` to `document.ts`?**
+- **Why does `PageHeader()` connect `app/page.tsx` to `[id]/page.tsx`, `RiskAssessmentForm.tsx`, `backup/page.tsx`, `duplicateLookup.ts`, `refData.ts`, `DuplicateLookupPanel.tsx`, `LegalArrangementForm.tsx`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **What connects `metadata`, `metadata`, `metadata` to the rest of the system?**
-  _1020 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1039 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `IndividualForm.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.12413793103448276 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11231884057971014 - nodes in this community are weakly interconnected._
 - **Should `[id]/page.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.13978494623655913 - nodes in this community are weakly interconnected._
-- **Should `validations.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06072874493927125 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11428571428571428 - nodes in this community are weakly interconnected._
+- **Should `RiskAssessmentForm.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.07886904761904762 - nodes in this community are weakly interconnected._

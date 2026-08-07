@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AlertCircle, BarChart3, ShieldAlert, TriangleAlert } from "lucide-react";
 import {
   riskAssessmentSchema,
   type RiskAssessmentValues,
@@ -17,6 +18,7 @@ import {
   RadioGroupField,
   FullRow,
 } from "@/components/forms/fields";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
 import {
   pepAsalNegaraLabels,
@@ -25,6 +27,12 @@ import {
   riskCategoryLabels,
   labelOptions,
 } from "@/lib/labels";
+
+const RISK_TONE: Record<string, BadgeTone> = {
+  TINGGI: "danger",
+  SEDANG: "warning",
+  RENDAH: "success",
+};
 
 const pepAsalNegaraOptions = labelOptions(pepAsalNegaraLabels);
 const pepJabatanOptions = labelOptions(pepJabatanLabels);
@@ -144,8 +152,9 @@ export function RiskAssessmentForm({
       {formError && (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="card flex items-center gap-3 border-danger-subtle bg-danger-subtle/40 p-4 text-sm font-semibold text-[#b91c1c]"
         >
+          <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
           {formError}
         </div>
       )}
@@ -153,6 +162,7 @@ export function RiskAssessmentForm({
       <SectionCard
         title="Analisa PEP (Politically Exposed Person)"
         description="Risk Assessment — Section 4"
+        icon={ShieldAlert}
       >
         <RadioGroupField
           label="Apakah Pengguna Jasa adalah PEP?"
@@ -203,6 +213,7 @@ export function RiskAssessmentForm({
       <SectionCard
         title="Skoring Risiko"
         description="Risk Assessment — Section 5/6. Pilih kelima kategori untuk menghitung Total Nilai."
+        icon={BarChart3}
       >
         <SelectField
           label="Profil Pengguna Jasa dan/atau BO"
@@ -228,7 +239,8 @@ export function RiskAssessmentForm({
             disabled={businessSectorEmpty}
           />
           {businessSectorEmpty && (
-            <p className="mt-1 text-sm font-medium text-amber-700">
+            <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-[#b45309]">
+              <TriangleAlert className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
               Skor Bisnis belum tersedia — Total Nilai belum final. Lengkapi
               di halaman Referensi Data.
             </p>
@@ -265,33 +277,42 @@ export function RiskAssessmentForm({
         </FullRow>
 
         <FullRow>
-          <div className="rounded-md border border-gray-200 bg-gray-50 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                Total Nilai {!allSelected && "(sementara)"}
-              </span>
-              <span className="text-lg font-semibold text-gray-900">
-                {runningTotal}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                Kategori Risiko
-              </span>
-              <span className="text-sm font-semibold text-gray-900">
-                {previewCategory
-                  ? riskCategoryLabels[previewCategory]
-                  : "Belum final"}
-              </span>
+          <div className="rounded-2xl border border-border-subtle bg-canvas p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="text-sm font-semibold text-slate-700">
+                  Total Nilai {!allSelected && "(sementara)"}
+                </span>
+                <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
+                  {runningTotal}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="block text-sm font-semibold text-slate-700">
+                  Kategori Risiko
+                </span>
+                <div className="mt-1">
+                  {previewCategory ? (
+                    <Badge tone={RISK_TONE[previewCategory] ?? "neutral"} className="text-sm">
+                      {riskCategoryLabels[previewCategory]}
+                    </Badge>
+                  ) : (
+                    <Badge tone="neutral" className="text-sm">
+                      Belum final
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
             {!allSelected && (
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-3 text-xs font-medium text-muted">
                 Pilih kelima kategori di atas agar Total Nilai dianggap
                 final.
               </p>
             )}
             {previewCategory === "TINGGI" && (
-              <p className="mt-2 text-sm font-medium text-red-700">
+              <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-[#b91c1c]">
+                <TriangleAlert className="h-4 w-4 shrink-0" strokeWidth={2} />
                 Kategori Tinggi — Informasi Tambahan (EDD) wajib diisi
                 sebelum CDD ini dianggap lengkap.
               </p>

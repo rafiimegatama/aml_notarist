@@ -188,3 +188,39 @@ otomatis dari kode.
 Sumber: PRD-Notary-CDD-Phase2-Improvements.md Bagian 4 (FR-5) & Lampiran B —
 ini komentar sekunder atas regulasi, bukan teks primer; verifikasi ke sumber
 primer/penasihat hukum sebelum dijadikan kebijakan final.
+
+## AI Processing Engine (provider-agnostic)
+
+`lib/ai/` berisi lapisan abstraksi AI yang tidak terikat ke satu provider —
+lihat `lib/ai/provider.ts` untuk kontrak `AIProvider` yang diimplementasikan
+tiap provider (`lib/ai/providers/ollama-provider.ts`,
+`lib/ai/providers/gemini-provider.ts`). Business logic/UI HANYA boleh
+memanggil `AIProcessingService` (`lib/ai/services/ai-processing.ts`) atau
+wrapper kapabilitasnya (`lib/ai/services/{ocr,vision,chat,risk}.ts`) — tidak
+pernah memanggil provider secara langsung.
+
+**Penting — cakupan saat ini:** engine ini dibangun lengkap (provider Ollama
++ Gemini, mode Local/Cloud/Hybrid dengan failover otomatis, halaman
+pengaturan di Admin > AI Processing, log request di `AiRequestLog`) tapi
+**belum disambungkan** ke fitur mana pun. Alur OCR formulir cetak yang sudah
+ada (`components/upload/ScanUploadPanel.tsx` → `lib/actions/document.ts` →
+`lib/ocr/runOcr.ts`, Tesseract.js lokal) dan Risk Assessment deterministik
+(`lib/actions/riskAssessment.ts`) TIDAK diubah dan TIDAK memakai engine ini
+— keduanya sengaja dibiarkan berjalan seperti sebelumnya. Menyambungkan
+salah satu fitur ke `AIProcessingService` adalah pekerjaan terpisah di masa
+depan, bukan bagian dari perubahan ini.
+
+**Menambah provider baru** (mis. Claude/OpenAI/Azure OpenAI/OpenRouter/
+Groq/Mistral): buat satu file baru di `lib/ai/providers/` yang
+mengimplementasikan `AIProvider`, lalu daftarkan satu baris di
+`PROVIDER_REGISTRY` (`lib/ai/provider-factory.ts`) dan tambahkan id-nya ke
+union `ProviderId` (`lib/ai/provider.ts`). Tidak ada file lain yang perlu
+diubah.
+
+**Keamanan:** API key cloud (mis. Gemini) disimpan terenkripsi (AES-256-GCM,
+kunci diturunkan dari `SESSION_SECRET` — lihat `lib/ai/crypto.ts`) di tabel
+`AppSetting`, bukan `GEMINI_API_KEY` di `.env` yang cuma jadi nilai bootstrap
+awal. Halaman Settings tidak pernah menampilkan key utuh, hanya 4 digit
+terakhir. Prompt/isi permintaan AI tidak pernah dicatat ke log — yang
+dicatat di `AiRequestLog` hanya metadata (provider, model, sukses/gagal,
+latency, token usage, estimasi biaya).

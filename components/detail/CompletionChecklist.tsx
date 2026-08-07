@@ -1,3 +1,4 @@
+import { CheckCircle2, Circle, ListChecks } from "lucide-react";
 import type { CompletionBreakdown } from "@/lib/status";
 import { riskCategoryLabels } from "@/lib/labels";
 
@@ -61,30 +62,31 @@ export function CompletionChecklist({
   const visibleRows = rows.filter((r) => r.state !== "hidden");
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-900">
-          Kelengkapan CDD
-        </h2>
-        <span className="text-sm font-medium text-gray-600">
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-subtle text-brand-hover">
+            <ListChecks className="h-4 w-4" strokeWidth={2} />
+          </span>
+          <h2 className="text-sm font-bold text-slate-900">Kelengkapan CDD</h2>
+        </div>
+        <span className="text-sm font-semibold text-muted">
           {breakdown.completed}/{breakdown.total} lengkap
         </span>
       </div>
-      <ul className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+      <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {visibleRows.map((row) => (
           <li key={row.label} className="text-sm">
-            <a href={row.href} className="hover:underline">
-              <span
-                className={
-                  row.state === "done"
-                    ? "mr-1.5 text-green-600"
-                    : "mr-1.5 text-amber-600"
-                }
-                aria-hidden
-              >
-                {row.state === "done" ? "✓" : "✗"}
-              </span>
-              <span className={row.state === "done" ? "text-gray-700" : "text-gray-900"}>
+            <a
+              href={row.href}
+              className="flex items-center gap-2 rounded-lg px-1.5 py-1 transition-colors hover:bg-canvas hover:underline"
+            >
+              {row.state === "done" ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#15803d]" strokeWidth={2} />
+              ) : (
+                <Circle className="h-4 w-4 shrink-0 text-[#b45309]" strokeWidth={2} />
+              )}
+              <span className={row.state === "done" ? "font-medium text-slate-700" : "font-semibold text-slate-900"}>
                 {row.label}
               </span>
             </a>

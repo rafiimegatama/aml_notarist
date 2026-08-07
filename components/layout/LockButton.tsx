@@ -44,7 +44,7 @@ export function LockButton() {
         type="submit"
         title="Kunci layar (Ctrl+Shift+L)"
         aria-label="Kunci layar (Ctrl+Shift+L)"
-        className="btn btn-secondary rounded-full px-4 py-3 text-sm shadow-lg"
+        className="btn btn-secondary rounded-full px-4 py-3 text-sm shadow-soft-lg hover:shadow-soft-lg"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

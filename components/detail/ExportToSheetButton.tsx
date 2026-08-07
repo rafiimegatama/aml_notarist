@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Sheet } from "lucide-react";
 import { exportCustomerToSheet } from "@/lib/actions/sheetsExport";
 
 export function ExportToSheetButton({ customerId }: { customerId: string }) {
@@ -29,13 +30,14 @@ export function ExportToSheetButton({ customerId }: { customerId: string }) {
         disabled={isPending}
         className="btn btn-secondary px-4 py-2 text-sm"
       >
+        <Sheet className="h-4 w-4" strokeWidth={2} />
         {isPending ? "Menyinkronkan..." : "Export ke Google Sheet"}
       </button>
       {message && (
         <p
           role={message.type === "error" ? "alert" : "status"}
-          className={`max-w-xs text-right text-xs ${
-            message.type === "error" ? "text-red-600" : "text-green-700"
+          className={`max-w-xs text-right text-xs font-medium ${
+            message.type === "error" ? "text-[#b91c1c]" : "text-[#15803d]"
           }`}
         >
           {message.text}

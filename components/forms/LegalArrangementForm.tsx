@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { CircleAlert, Scale, Search, UserPlus, Users, Wallet } from "lucide-react";
 import {
   legalArrangementFormSchema,
   legalArrangementBoRoleValues,
@@ -30,6 +31,8 @@ import {
   useOcrUnverifiedPaths,
 } from "@/components/forms/OcrFieldContext";
 import { useUnsavedChangesWarning } from "@/lib/hooks/useUnsavedChangesWarning";
+import { useAutosaveDraft, loadAutosaveDraft, clearAutosaveDraft } from "@/lib/hooks/useAutosaveDraft";
+import { DraftRecoveryBanner } from "@/components/forms/DraftRecoveryBanner";
 import { applyFieldGuesses } from "@/lib/ocr/applyFieldGuesses";
 import { LABEL_MAPS } from "@/lib/ocr/extractFields";
 import { jenisIdentitasLabels, labelOptions } from "@/lib/labels";
@@ -62,6 +65,8 @@ const defaultValues: LegalArrangementFormValues = {
     jasaYangDiberikan: "",
   },
 };
+
+const AUTOSAVE_KEY = "notary-aml:draft:legal-arrangement";
 
 export function LegalArrangementForm({
   ocrDraft,
@@ -112,6 +117,7 @@ function LegalArrangementFormInner({
     setValue,
     setError,
     setFocus,
+    reset,
     formState: { errors, isSubmitting, isDirty, isSubmitSuccessful },
   } = useForm<
     LegalArrangementFormValues,
@@ -126,8 +132,20 @@ function LegalArrangementFormInner({
 
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
+  const allValues = useWatch({ control });
+  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful);
+  const [draft, setDraft] = useState<{ savedAt: number; values: LegalArrangementFormValues } | null>(null);
+  useEffect(() => {
+    if (ocrDraft || prefill) return;
+    void (async () => {
+      setDraft(loadAutosaveDraft<LegalArrangementFormValues>(AUTOSAVE_KEY));
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const onSubmit = handleSubmit(async (values: LegalArrangementFormOutput) => {
     setFormError(null);
+    clearAutosaveDraft(AUTOSAVE_KEY);
     const result = await createLegalArrangementCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
     if (!result.success) {
       setFormError(
@@ -157,20 +175,38 @@ function LegalArrangementFormInner({
       {formError && (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="flex items-start gap-3 rounded-2xl border border-danger/20 bg-danger-subtle px-4 py-3.5 text-sm font-medium text-red-700"
         >
+          <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger" strokeWidth={2} />
           {formError}
         </div>
+      )}
+
+      {draft && (
+        <DraftRecoveryBanner
+          savedAt={draft.savedAt}
+          onRestore={() => {
+            reset(draft.values);
+            setDraft(null);
+          }}
+          onDiscard={() => {
+            clearAutosaveDraft(AUTOSAVE_KEY);
+            setDraft(null);
+          }}
+        />
       )}
 
       {prefill && (
         <div
           role="status"
-          className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+          className="flex items-start gap-3 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3.5 text-sm text-blue-800"
         >
-          Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
-          <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
-          yang mungkin sudah berubah sebelum menyimpan.
+          <Search className="mt-0.5 h-5 w-5 shrink-0 text-brand-hover" strokeWidth={2} />
+          <p>
+            Formulir diisi otomatis dari data klien terdaftar sebelumnya:{" "}
+            <strong>{prefill.sourceLabel}</strong>. Periksa dan perbarui data
+            yang mungkin sudah berubah sebelum menyimpan.
+          </p>
         </div>
       )}
 
@@ -201,6 +237,7 @@ function LegalArrangementFormInner({
       <SectionCard
         title="A. Informasi Dasar Pengguna Jasa"
         description="CDD Perikatan Lainnya — Section 3.A"
+        icon={Scale}
       >
         <TextField
           label="Nama"
@@ -301,6 +338,7 @@ function LegalArrangementFormInner({
       <SectionCard
         title="B. Informasi Kekayaan"
         description="CDD Perikatan Lainnya — Section 3.B"
+        icon={Wallet}
       >
         <TextField
           label="Sumber Dana"
@@ -329,6 +367,7 @@ function LegalArrangementFormInner({
       <SectionCard
         title="C. Informasi Pemilik Manfaat (Beneficial Owner)"
         description="CDD Perikatan Lainnya — Section 3.C. Opsional, bisa lebih dari satu."
+        icon={UserPlus}
       >
         <FullRow>
           <BeneficialOwnerArrayField<LegalArrangementFormValues>
@@ -344,6 +383,7 @@ function LegalArrangementFormInner({
       <SectionCard
         title="D. Informasi Pihak dalam Legal Arrangement"
         description="CDD Perikatan Lainnya — Section 3.D"
+        icon={Users}
       >
         <FullRow>
           <LegalArrangementPartyArrayField<LegalArrangementFormValues>

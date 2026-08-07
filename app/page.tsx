@@ -1,4 +1,20 @@
 import Link from "next/link";
+import {
+  Archive,
+  BookOpen,
+  BrainCircuit,
+  ChevronRight,
+  Eye,
+  FileCheck2,
+  FilePlus2,
+  ScanLine,
+  Search,
+  ShieldAlert,
+  ShieldQuestion,
+  SlidersHorizontal,
+  TriangleAlert,
+  Users,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import {
@@ -13,17 +29,40 @@ import {
   labelOptions,
 } from "@/lib/labels";
 import { formatDate } from "@/components/detail/DetailPrimitives";
-import { ScanUploadPanel } from "@/components/upload/ScanUploadPanel";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { HeroBanner } from "@/components/dashboard/HeroBanner";
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import { RiskChart } from "@/components/dashboard/RiskChart";
+import { RiskDonut } from "@/components/dashboard/RiskDonut";
+import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline";
+import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
+import { DashboardUtilityDial } from "@/components/dashboard/DashboardUtilityDial";
 import {
   computeCompletionBreakdown,
   STATUS_QUERY_INCLUDE,
   type CompletionBreakdown,
 } from "@/lib/status";
 import { isReviewOverdue } from "@/lib/reviewReminder";
+import { getHeroBannerSettings } from "@/lib/actions/heroSettings";
+import {
+  getDashboardKpis,
+  getPendingTasks,
+  getRecentActivityFeed,
+  getRiskDistribution,
+  getRiskTrend,
+  getSystemHealth,
+} from "@/lib/dashboard";
 
 const typeOptions = labelOptions(customerTypeLabels);
 const statusOptions = labelOptions(customerStatusLabels);
 const riskCategoryOptions = labelOptions(riskCategoryLabels);
+
+const RISK_TONE: Record<RiskCategory, BadgeTone> = {
+  TINGGI: "danger",
+  SEDANG: "warning",
+  RENDAH: "success",
+};
 
 function firstOrUndefined(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
@@ -39,6 +78,13 @@ function missingSectionsLabel(breakdown: CompletionBreakdown): string {
   if (breakdown.edd === "required_not_filled") missing.push("EDD");
   if (breakdown.edd === "manual_required") missing.push("EDD (proses manual di luar aplikasi)");
   return missing.length ? `Menunggu: ${missing.join(", ")}` : "";
+}
+
+function greetingForHour(hour: number): string {
+  if (hour < 11) return "Selamat Pagi";
+  if (hour < 15) return "Selamat Siang";
+  if (hour < 19) return "Selamat Sore";
+  return "Selamat Malam";
 }
 
 export default async function DashboardPage({
@@ -81,18 +127,39 @@ export default async function DashboardPage({
     };
   }
   if (q) {
+    // Cakupan pencarian: nama (semua 3 tipe CDD) + nomor identitas + NPWP —
+    // field-field ini sudah ber-index (lihat prisma/schema.prisma), jadi
+    // tetap murah walau dicocokkan lintas beberapa kolom sekaligus.
     where.OR = [
       { corporateDetail: { namaKorporasi: { contains: q } } },
+      { corporateDetail: { npwp: { contains: q } } },
       { individualDetail: { namaLengkap: { contains: q } } },
+      { individualDetail: { noIdentitas: { contains: q } } },
+      { individualDetail: { npwp: { contains: q } } },
       { legalArrangementDetail: { nama: { contains: q } } },
+      { legalArrangementDetail: { noIdentitas: { contains: q } } },
     ];
   }
 
-  const customersFetched = await prisma.customer.findMany({
-    where,
-    include: STATUS_QUERY_INCLUDE,
-    orderBy: { createdAt: "desc" },
-  });
+  const [
+    customersFetched,
+    heroSettings,
+    kpis,
+    riskTrend,
+    riskDistribution,
+    activityFeed,
+    pendingTasks,
+    systemHealth,
+  ] = await Promise.all([
+    prisma.customer.findMany({ where, include: STATUS_QUERY_INCLUDE, orderBy: { createdAt: "desc" } }),
+    getHeroBannerSettings(),
+    getDashboardKpis(),
+    getRiskTrend(90),
+    getRiskDistribution(),
+    getRecentActivityFeed(10),
+    getPendingTasks(),
+    getSystemHealth(),
+  ]);
 
   // FR-7 — "jatuh tempo tinjau ulang" adalah nilai turunan (bukan kolom
   // tersimpan), jadi difilter di memori dari data yang sudah di-fetch, sama
@@ -118,56 +185,100 @@ export default async function DashboardPage({
     reviewOverdue ||
     ltkm
   );
-  // Filter lanjutan (tanggal + toggle) default tertutup — kalau salah satu
-  // sedang aktif dari URL, buka otomatis supaya pengguna tidak kehilangan
-  // konteks kalau membuka/refresh halaman dengan filter itu sudah terpasang.
   const hasAdvancedFilters = !!(dateFrom || dateTo || reviewOverdue || ltkm);
+  const ltkmCount = customersFetched.filter((c) => c.isLtkm).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {customers.length} CDD ditemukan.
-          </p>
-        </div>
-        <Link
-          href="/cdd/new"
-          className="btn btn-primary px-4 py-2 text-sm"
-        >
-          + Buat CDD Baru
-        </Link>
+    <div className="space-y-8">
+      <HeroBanner
+        imageUrl={heroSettings.enabled && heroSettings.filename ? "/api/hero-image" : null}
+        greeting={greetingForHour(now.getHours())}
+        subtitle="Kelola kepatuhan AML secara efisien hari ini."
+        searchDefaultValue={q ?? ""}
+      />
+
+      {/* ============ KPI Cards ============ */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <DashboardCard
+          icon={Users}
+          label="CDD Hari Ini"
+          value={kpis.todayCdd}
+          tone="brand"
+          trend={{
+            direction: kpis.todayCdd > kpis.todayCddYesterday ? "up" : kpis.todayCdd < kpis.todayCddYesterday ? "down" : "flat",
+            label: `${kpis.todayCddYesterday} kemarin`,
+          }}
+        />
+        <DashboardCard icon={FileCheck2} label="Menunggu Review" value={kpis.pendingReview} tone="warning" href="/?status=DRAFT" />
+        <DashboardCard icon={ShieldQuestion} label="EDD Diperlukan" value={kpis.eddRequired} tone="danger" href="/cases?status=EDD_REQUIRED" />
+        <DashboardCard icon={ShieldAlert} label="Klien Risiko Tinggi" value={kpis.highRiskClients} tone="danger" href="/?riskCategory=TINGGI" />
+        <DashboardCard icon={FilePlus2} label="Dokumen Hari Ini" value={kpis.documentsToday} tone="brand" />
+        <DashboardCard icon={ScanLine} label="OCR Hari Ini" value={kpis.recentOcr} tone="success" />
       </div>
 
-      <ScanUploadPanel />
+      {/* ============ Risk Visualization ============ */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RiskChart data={riskTrend} />
+        </div>
+        <RiskDonut distribution={riskDistribution} />
+      </div>
 
-      <form
-        method="get"
-        className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-      >
+      {/* ============ Recent Activity ============ */}
+      <ActivityTimeline items={activityFeed} />
+
+      {/* ============ Quick Actions ============ */}
+      <div>
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Aksi Cepat</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <QuickActionCard icon={Users} label="CDD Perorangan Baru" description="Mulai formulir CDD individu" href="/cdd/new/perorangan" />
+          <QuickActionCard icon={FilePlus2} label="CDD Korporasi Baru" description="Mulai formulir CDD badan usaha" href="/cdd/new/korporasi" />
+          <QuickActionCard icon={ScanLine} label="Unggah Dokumen" description="Scan formulir cetak untuk OCR" href="#upload-ocr" />
+          <QuickActionCard icon={Archive} label="Jalankan Backup" description="Backup manual dev.db + dokumen" href="/admin/backup" />
+          <QuickActionCard icon={BookOpen} label="Referensi Data" description="Kelola tabel skor risiko" href="/admin/referensi" />
+          <QuickActionCard icon={BrainCircuit} label="AI Processing" description="Konfigurasi provider AI" href="/admin/ai-processing" />
+        </div>
+      </div>
+
+      {ltkmCount > 0 && (
+        <Link
+          href="/admin/ltkm"
+          className="card card-hover flex items-center gap-3 border-danger-subtle bg-danger-subtle/40 p-4 text-sm font-semibold text-[#b91c1c]"
+        >
+          <TriangleAlert className="h-4 w-4 shrink-0" strokeWidth={2} />
+          {ltkmCount} pengguna jasa ditandai LTKM &mdash; lihat Laporan LTKM
+          <ChevronRight className="ml-auto h-4 w-4 shrink-0" strokeWidth={2} />
+        </Link>
+      )}
+
+      <DashboardUtilityDial pendingTasks={pendingTasks} systemHealth={systemHealth} />
+
+      <form method="get" className="card space-y-5 p-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
           <div className="sm:col-span-2">
-            <label htmlFor="q" className="block text-xs font-medium text-gray-500">
-              Cari nama
+            <label htmlFor="q" className="block text-xs font-semibold text-muted">
+              Cari nama / NIK / NPWP
             </label>
-            <input
-              id="q"
-              name="q"
-              defaultValue={q ?? ""}
-              placeholder="Nama pengguna jasa... (Ctrl+K)"
-              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-            />
+            <div className="relative mt-1.5">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={2} />
+              <input
+                id="q"
+                name="q"
+                defaultValue={q ?? ""}
+                placeholder="Nama, NIK, paspor, NPWP... (Ctrl+K)"
+                className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-3.5 text-sm shadow-soft-sm transition-colors placeholder:text-slate-400 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+              />
+            </div>
           </div>
           <div>
-            <label htmlFor="type" className="block text-xs font-medium text-gray-500">
+            <label htmlFor="type" className="block text-xs font-semibold text-muted">
               Tipe
             </label>
             <select
               id="type"
               name="type"
               defaultValue={type ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-soft-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               <option value="">Semua</option>
               {typeOptions.map((o) => (
@@ -178,14 +289,14 @@ export default async function DashboardPage({
             </select>
           </div>
           <div>
-            <label htmlFor="riskCategory" className="block text-xs font-medium text-gray-500">
+            <label htmlFor="riskCategory" className="block text-xs font-semibold text-muted">
               Kategori Risiko
             </label>
             <select
               id="riskCategory"
               name="riskCategory"
               defaultValue={riskCategory ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-soft-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               <option value="">Semua</option>
               {riskCategoryOptions.map((o) => (
@@ -196,14 +307,14 @@ export default async function DashboardPage({
             </select>
           </div>
           <div>
-            <label htmlFor="status" className="block text-xs font-medium text-gray-500">
+            <label htmlFor="status" className="block text-xs font-semibold text-muted">
               Status
             </label>
             <select
               id="status"
               name="status"
               defaultValue={status ?? ""}
-              className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+              className="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-soft-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
             >
               <option value="">Semua</option>
               {statusOptions.map((o) => (
@@ -215,20 +326,15 @@ export default async function DashboardPage({
           </div>
         </div>
 
-        {/* Filter lanjutan (tanggal, jatuh tempo tinjau ulang, LTKM) —
-            <details> native supaya default tertutup tanpa perlu JS/client
-            component; otomatis terbuka lewat `open` kalau salah satunya
-            sedang aktif dari URL (lihat hasAdvancedFilters). */}
-        <details className="border-t border-gray-100 pt-3" open={hasAdvancedFilters}>
-          <summary className="cursor-pointer text-xs font-medium text-gray-500 hover:text-gray-700">
+        <details className="border-t border-border-subtle pt-4" open={hasAdvancedFilters}>
+          <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-muted hover:text-slate-700">
+            <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={2} />
             Filter Lanjutan
-            {hasAdvancedFilters && (
-              <span className="ml-1.5 text-blue-600">(aktif)</span>
-            )}
+            {hasAdvancedFilters && <span className="text-brand">(aktif)</span>}
           </summary>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-6">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-6">
             <div>
-              <label htmlFor="dateFrom" className="block text-xs font-medium text-gray-500">
+              <label htmlFor="dateFrom" className="block text-xs font-semibold text-muted">
                 Dari Tanggal
               </label>
               <input
@@ -236,11 +342,11 @@ export default async function DashboardPage({
                 name="dateFrom"
                 type="date"
                 defaultValue={dateFrom ?? ""}
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-soft-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
               />
             </div>
             <div>
-              <label htmlFor="dateTo" className="block text-xs font-medium text-gray-500">
+              <label htmlFor="dateTo" className="block text-xs font-semibold text-muted">
                 Sampai Tanggal
               </label>
               <input
@@ -248,29 +354,29 @@ export default async function DashboardPage({
                 name="dateTo"
                 type="date"
                 defaultValue={dateTo ?? ""}
-                className="mt-1 w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm shadow-soft-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
               />
             </div>
             <div className="flex items-end sm:col-span-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <input
                   type="checkbox"
                   name="reviewOverdue"
                   value="1"
                   defaultChecked={reviewOverdue}
-                  className="rounded border-gray-300"
+                  className="h-4 w-4 rounded accent-brand"
                 />
                 Jatuh tempo tinjau ulang (PMPJ)
               </label>
             </div>
             <div className="flex items-end sm:col-span-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <input
                   type="checkbox"
                   name="ltkm"
                   value="1"
                   defaultChecked={ltkm}
-                  className="rounded border-gray-300"
+                  className="h-4 w-4 rounded accent-brand"
                 />
                 Hanya LTKM
               </label>
@@ -278,120 +384,113 @@ export default async function DashboardPage({
           </div>
         </details>
 
-        <div className="flex items-center gap-4 border-t border-gray-100 pt-3">
-          <button type="submit" className="btn btn-primary px-4 py-1.5 text-sm">
+        <div className="flex items-center gap-3 border-t border-border-subtle pt-4">
+          <button type="submit" className="btn btn-primary px-4 py-2 text-sm">
             Terapkan Filter
           </button>
           {hasFilters && (
-            <Link href="/" className="btn btn-secondary px-4 py-1.5 text-sm">
+            <Link href="/" className="btn btn-secondary px-4 py-2 text-sm">
               Reset
             </Link>
           )}
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-gray-500">
-              <th className="px-4 py-3 font-medium">Nama</th>
-              <th className="px-4 py-3 font-medium">Tipe</th>
-              <th className="px-4 py-3 font-medium">Kategori Risiko</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Tanggal Dibuat</th>
-              <th className="px-4 py-3 font-medium">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {customers.map((c) => {
-              const name =
-                c.corporateDetail?.namaKorporasi ??
-                c.individualDetail?.namaLengkap ??
-                c.legalArrangementDetail?.nama ??
-                "(tanpa nama)";
-              const category = c.riskAssessment?.riskCategory;
-              return (
-                <tr key={c.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 text-gray-900">
-                    {name}
-                    {c.isLtkm && (
-                      <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
-                        LTKM
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {customerTypeLabels[c.type]}
-                  </td>
-                  <td className="px-4 py-3">
-                    {category ? (
-                      <span
-                        className={
-                          "inline-flex items-center gap-1.5 font-medium " +
-                          (category === "TINGGI"
-                            ? "text-red-700"
-                            : category === "SEDANG"
-                              ? "text-amber-700"
-                              : "text-green-700")
-                        }
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={
-                            "h-2 w-2 shrink-0 rounded-full " +
-                            (category === "TINGGI"
-                              ? "bg-red-600"
-                              : category === "SEDANG"
-                                ? "bg-amber-600"
-                                : "bg-green-600")
-                          }
-                        />
-                        {riskCategoryLabels[category]}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">Belum final</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    {c.status === "COMPLETE" ? (
-                      <span className="inline-flex items-center gap-1.5 font-medium text-green-700">
-                        <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-green-600" />
-                        {customerStatusLabels[c.status]}
-                      </span>
-                    ) : (
-                      <span
-                        className="inline-flex items-center gap-1.5 font-medium text-amber-700 underline decoration-dotted"
-                        title={missingSectionsLabel(computeCompletionBreakdown(c))}
-                      >
-                        <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-amber-600" />
-                        {customerStatusLabels[c.status]}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums text-gray-500">
-                    {formatDate(c.createdAt)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/cdd/${c.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      Lihat Detail
-                    </Link>
-                  </td>
+      {customers.length === 0 ? (
+        <div className="card">
+          <EmptyState
+            icon={Search}
+            title="Tidak ada CDD yang cocok"
+            description={
+              hasFilters
+                ? "Coba ubah atau reset filter pencarian di atas."
+                : "Belum ada data CDD. Mulai dengan membuat CDD baru."
+            }
+            action={
+              hasFilters ? (
+                <Link href="/" className="btn btn-secondary px-4 py-2 text-sm">
+                  Reset Filter
+                </Link>
+              ) : (
+                <Link href="/cdd/new" className="btn btn-primary px-4 py-2 text-sm">
+                  <FilePlus2 className="h-4 w-4" strokeWidth={2} />
+                  Buat CDD Baru
+                </Link>
+              )
+            }
+          />
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border-subtle bg-slate-50/70 text-muted">
+                  <th className="px-5 py-3.5 font-semibold">Nama</th>
+                  <th className="px-5 py-3.5 font-semibold">Tipe</th>
+                  <th className="px-5 py-3.5 font-semibold">Kategori Risiko</th>
+                  <th className="px-5 py-3.5 font-semibold">Status</th>
+                  <th className="px-5 py-3.5 font-semibold">Tanggal Dibuat</th>
+                  <th className="px-5 py-3.5 text-right font-semibold">Aksi</th>
                 </tr>
-              );
-            })}
-            {customers.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
-                  Tidak ada CDD yang cocok dengan filter.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {customers.map((c) => {
+                  const name =
+                    c.corporateDetail?.namaKorporasi ??
+                    c.individualDetail?.namaLengkap ??
+                    c.legalArrangementDetail?.nama ??
+                    "(tanpa nama)";
+                  const category = c.riskAssessment?.riskCategory;
+                  return (
+                    <tr key={c.id} className="transition-colors hover:bg-slate-50/70">
+                      <td className="px-5 py-3.5 font-medium text-slate-900">
+                        <div className="flex items-center gap-2">
+                          {name}
+                          {c.isLtkm && <Badge tone="danger">LTKM</Badge>}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-600">
+                        {customerTypeLabels[c.type]}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {category ? (
+                          <Badge tone={RISK_TONE[category]}>{riskCategoryLabels[category]}</Badge>
+                        ) : (
+                          <span className="text-sm text-slate-400">Belum final</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {c.status === "COMPLETE" ? (
+                          <Badge tone="success">{customerStatusLabels[c.status]}</Badge>
+                        ) : (
+                          <span title={missingSectionsLabel(computeCompletionBreakdown(c))}>
+                            <Badge tone="warning" className="decoration-dotted">
+                              {customerStatusLabels[c.status]}
+                            </Badge>
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 tabular-nums text-muted">
+                        {formatDate(c.createdAt)}
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <Link
+                          href={`/cdd/${c.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-hover transition-colors hover:bg-brand-subtle"
+                        >
+                          <Eye className="h-4 w-4" strokeWidth={2} />
+                          Lihat Detail
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
