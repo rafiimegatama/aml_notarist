@@ -1,0 +1,35 @@
+name: Security Review
+
+# AI-powered PR security review (https://github.com/anthropics/claude-code-security-review).
+# Requires a CLAUDE_API_KEY secret to be set on this repo (Settings > Secrets
+# and variables > Actions) — an Anthropic API key enabled for both the
+# Claude API and Claude Code. Not set by this workflow file; only a repo
+# admin can add it via the GitHub UI/CLI.
+#
+# This app is developed mostly via direct commits to main (see CLAUDE.md
+# riwayat perubahan), not a PR-heavy workflow — this only fires when a PR
+# actually exists, e.g. for reviewing an external contribution or a worktree
+# branch pushed for review before merging to main.
+
+permissions:
+  pull-requests: write # needed to leave PR comments
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      - uses: anthropics/claude-code-security-review@main
+        with:
+          comment-pr: true
+          claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+          # generated code/config, never hand-written app logic
+          exclude-directories: "graphify-out,storage,.next,node_modules"

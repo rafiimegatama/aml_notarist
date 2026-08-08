@@ -65,3 +65,8 @@ next-env.d.ts
 /terraform/*.tfplan
 /terraform/sa-key.json
 /terraform/*.json
+
+# Strix pentest — local LLM key + scan output (PoCs/findings, review before
+# ever sharing; not auto-committed)
+.strix-llm-key.local
+/strix_runs/
