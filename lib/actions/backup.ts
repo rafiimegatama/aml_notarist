@@ -3,6 +3,7 @@
 import { readFile } from "node:fs/promises";
 import { BACKUP_META_PATH } from "@/lib/storage";
 import { buildBackupZip, type BackupMeta, type CreateBackupResult } from "@/lib/backupArchive";
+import { logSecurityEvent } from "@/lib/securityLog";
 
 /**
  * FR-1.1 — bundel prisma/dev.db + storage/uploads/ jadi satu zip
@@ -17,7 +18,11 @@ import { buildBackupZip, type BackupMeta, type CreateBackupResult } from "@/lib/
  * ADA di lib/backupArchive.ts (bukan file "use server"), bukan di sini.
  */
 export async function createBackup(): Promise<CreateBackupResult> {
-  return buildBackupZip();
+  const result = await buildBackupZip();
+  if (result.success) {
+    void logSecurityEvent("BACKUP_CREATED", result.fileName);
+  }
+  return result;
 }
 
 export async function getLastBackupInfo(): Promise<BackupMeta | null> {

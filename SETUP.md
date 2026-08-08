@@ -268,3 +268,23 @@ awal. Halaman Settings tidak pernah menampilkan key utuh, hanya 4 digit
 terakhir. Prompt/isi permintaan AI tidak pernah dicatat ke log — yang
 dicatat di `AiRequestLog` hanya metadata (provider, model, sukses/gagal,
 latency, token usage, estimasi biaya).
+
+## Deployment Intranet HTTPS (LAN)
+
+Untuk mengakses aplikasi dari PC lain di jaringan kantor via
+`https://amlguard.notaris.co.id` (bukan hanya `http://127.0.0.1:4001`),
+diperlukan konfigurasi tambahan: IP LAN statis, DNS internal, reverse proxy
+(Caddy), dan sertifikat TLS lokal (mkcert).
+
+Lihat panduan lengkap di `docs/intranet-deployment-id.md`.
+
+Perubahan minimal di kode (sudah diimplementasikan):
+
+- `APP_BASE_URL="https://amlguard.notaris.co.id"` di `.env` — mengaktifkan
+  flag `Secure` pada cookie sesi dan mengarahkan redirect URI Google OAuth ke
+  URL kanonik yang benar.
+- Tanpa `APP_BASE_URL` (atau dikosongkan), perilaku lokal `http://127.0.0.1`
+  tetap persis sama seperti sebelumnya — tidak ada breaking change.
+
+Reverse proxy (`caddy/Caddyfile`) dan admin guide (`docs/intranet-deployment-id.md`)
+sudah tersedia di repo.

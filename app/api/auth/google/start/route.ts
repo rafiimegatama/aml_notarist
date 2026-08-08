@@ -4,6 +4,7 @@ import {
   OAUTH_STATE_COOKIE_NAME,
   OAUTH_STATE_MAX_AGE_SECONDS,
   createOAuthState,
+  isSecureDeployment,
 } from "@/lib/auth";
 import { buildGoogleAuthUrl, getGoogleOAuthConfig } from "@/lib/googleOAuth";
 
@@ -20,13 +21,18 @@ export async function GET(request: NextRequest) {
   }
 
   const state = createOAuthState();
-  const redirectUri = new URL("/api/auth/google/callback", request.url).toString();
+  // Kalau APP_BASE_URL diset (mis. https://amlguard.notaris.co.id), pakai itu
+  // sebagai base redirect URI supaya cocok dengan yang terdaftar di Google
+  // Cloud Console. Kalau tidak diset, fallback ke origin dari request
+  // (http://127.0.0.1:4001 untuk akses lokal langsung).
+  const appBase = process.env.APP_BASE_URL?.replace(/\/$/, "") ?? new URL("/", request.url).origin;
+  const redirectUri = `${appBase}/api/auth/google/callback`;
   const authUrl = buildGoogleAuthUrl(config, redirectUri, state);
 
   const response = NextResponse.redirect(authUrl);
   response.cookies.set(OAUTH_STATE_COOKIE_NAME, state, {
     httpOnly: true,
-    secure: false, // aplikasi lokal, diakses via http://127.0.0.1
+    secure: isSecureDeployment(), // true saat APP_BASE_URL="https://...", false untuk http://127.0.0.1 lokal
     sameSite: "lax",
     path: "/",
     maxAge: OAUTH_STATE_MAX_AGE_SECONDS,

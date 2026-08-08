@@ -7,10 +7,12 @@ import {
   SESSION_DURATION_HOURS,
   createSessionToken,
   hashPin,
+  isSecureDeployment,
   isValidPinResetToken,
   resetLockout,
 } from "@/lib/auth";
 import { setPinHash } from "@/lib/pinSettings";
+import { logSecurityEvent } from "@/lib/securityLog";
 
 export type ResetPinResult = { success: true } | { success: false; error: string };
 
@@ -43,6 +45,7 @@ export async function resetPinWithRecoveryToken(
   }
 
   await setPinHash(hashPin(pin));
+  void logSecurityEvent("PIN_RESET", "Via Google OAuth");
   resetLockout();
 
   // Token sekali-pakai — hapus supaya tidak bisa dipakai ulang selama sisa
@@ -52,7 +55,7 @@ export async function resetPinWithRecoveryToken(
   cookieStore.delete(PIN_RESET_COOKIE_NAME);
   cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(), {
     httpOnly: true,
-    secure: false, // aplikasi lokal, diakses via http://127.0.0.1
+    secure: isSecureDeployment(), // true saat APP_BASE_URL="https://...", false untuk http://127.0.0.1 lokal
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DURATION_HOURS * 60 * 60,

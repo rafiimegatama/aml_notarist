@@ -8,6 +8,7 @@ import {
   getLockoutStatus,
   getSessionExpiryMs,
   hashPin,
+  isLegacyPinHash,
   isValidOAuthState,
   isValidPinResetToken,
   isValidSessionToken,
@@ -15,11 +16,21 @@ import {
   resetLockout,
   verifyPinHash,
 } from "@/lib/auth";
+import { createHash } from "node:crypto";
 
-describe("hashPin / verifyPinHash", () => {
-  it("hashes deterministically and verifies a matching PIN", () => {
+describe("hashPin / verifyPinHash (scrypt)", () => {
+  it("hashes with random salt and verifies a matching PIN", () => {
     const hash = hashPin("123456");
+    expect(hash).toMatch(/^\$scrypt\$/);
     expect(verifyPinHash("123456", hash)).toBe(true);
+  });
+
+  it("produces different hashes for the same PIN (random salt)", () => {
+    const h1 = hashPin("123456");
+    const h2 = hashPin("123456");
+    expect(h1).not.toBe(h2);
+    expect(verifyPinHash("123456", h1)).toBe(true);
+    expect(verifyPinHash("123456", h2)).toBe(true);
   });
 
   it("rejects a wrong PIN", () => {
@@ -29,6 +40,26 @@ describe("hashPin / verifyPinHash", () => {
 
   it("rejects when no PIN is configured yet (configuredHash null)", () => {
     expect(verifyPinHash("123456", null)).toBe(false);
+  });
+
+  it("rejects malformed hash strings", () => {
+    expect(verifyPinHash("123456", "not-a-valid-hash")).toBe(false);
+    expect(verifyPinHash("123456", "$scrypt$bad")).toBe(false);
+  });
+});
+
+describe("legacy SHA-256 migration", () => {
+  const legacyHash = createHash("sha256").update("1234").digest("hex");
+
+  it("isLegacyPinHash detects bare SHA-256 hex", () => {
+    expect(isLegacyPinHash(legacyHash)).toBe(true);
+    expect(isLegacyPinHash(hashPin("1234"))).toBe(false);
+    expect(isLegacyPinHash(null)).toBe(false);
+  });
+
+  it("verifyPinHash still verifies legacy SHA-256 hashes", () => {
+    expect(verifyPinHash("1234", legacyHash)).toBe(true);
+    expect(verifyPinHash("5678", legacyHash)).toBe(false);
   });
 });
 

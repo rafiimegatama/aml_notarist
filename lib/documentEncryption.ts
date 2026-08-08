@@ -42,3 +42,40 @@ export function decryptDocumentBuffer(data: Buffer): Buffer {
   decipher.setAuthTag(authTag);
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
+
+// ------------------------------------------------------------------
+// Text/JSON encryption for OCR data stored in SQLite columns
+// (ocrRawText, fieldGuesses). Same AES-256-GCM key as file encryption.
+// Format: $enc$v1$<base64(iv+authTag+ciphertext)>
+// Legacy plaintext (pre-encryption) auto-detected and returned as-is
+// on read — new writes are always encrypted.
+// ------------------------------------------------------------------
+const ENC_PREFIX = "$enc$v1$";
+
+export function encryptString(plaintext: string): string {
+  const encrypted = encryptDocumentBuffer(Buffer.from(plaintext, "utf-8"));
+  return `${ENC_PREFIX}${encrypted.toString("base64")}`;
+}
+
+export function decryptString(stored: string): string {
+  if (!stored.startsWith(ENC_PREFIX)) return stored;
+  const data = Buffer.from(stored.slice(ENC_PREFIX.length), "base64");
+  return decryptDocumentBuffer(data).toString("utf-8");
+}
+
+export function encryptJson(value: unknown): string {
+  return encryptString(JSON.stringify(value));
+}
+
+/**
+ * Decrypt a Json column value that may be encrypted (string starting with
+ * $enc$v1$) or legacy plaintext (already-parsed object from Prisma). Returns
+ * null for null/undefined input.
+ */
+export function decryptJsonField<T>(stored: unknown): T | null {
+  if (stored === null || stored === undefined) return null;
+  if (typeof stored === "string" && stored.startsWith(ENC_PREFIX)) {
+    return JSON.parse(decryptString(stored)) as T;
+  }
+  return stored as T;
+}

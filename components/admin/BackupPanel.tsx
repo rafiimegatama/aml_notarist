@@ -20,7 +20,7 @@ function formatDateTime(iso: string): string {
 export function BackupPanel({
   initialLastBackup,
 }: {
-  initialLastBackup: { lastManualBackupAt: string; fileName: string } | null;
+  initialLastBackup: { lastManualBackupAt: string; fileName: string; sha256?: string } | null;
 }) {
   const { toast } = useToast();
   const [result, setResult] = useState<CreateBackupResult | null>(null);

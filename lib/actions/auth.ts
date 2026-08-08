@@ -3,16 +3,21 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
+  LOCKOUT_THRESHOLD,
   SESSION_COOKIE_NAME,
   SESSION_DURATION_HOURS,
   createSessionToken,
   getLockoutStatus,
+  hashPin,
+  isLegacyPinHash,
+  isSecureDeployment,
   isValidSessionToken,
   recordFailedAttempt,
   resetLockout,
   verifyPinHash,
 } from "@/lib/auth";
-import { getEffectivePinHash } from "@/lib/pinSettings";
+import { getEffectivePinHash, setPinHash } from "@/lib/pinSettings";
+import { logSecurityEvent } from "@/lib/securityLog";
 
 export type VerifyPinResult =
   | { success: true }
@@ -40,6 +45,7 @@ export async function verifyPin(pin: string): Promise<VerifyPinResult> {
     recordFailedAttempt();
     const status = getLockoutStatus();
     if (status.locked) {
+      void logSecurityEvent("LOCKOUT_TRIGGERED", `Percobaan ke-${LOCKOUT_THRESHOLD}`);
       return {
         success: false,
         error: `PIN salah. Percobaan habis — terkunci ${Math.ceil(
@@ -47,14 +53,22 @@ export async function verifyPin(pin: string): Promise<VerifyPinResult> {
         )} menit.`,
       };
     }
+    void logSecurityEvent("LOGIN_FAILED");
     return { success: false, error: "PIN salah." };
   }
 
+  void logSecurityEvent("LOGIN_SUCCESS");
   resetLockout();
+
+  // Transparent migration: rehash legacy SHA-256 to scrypt on successful login.
+  // Fire-and-forget — login succeeds regardless of rehash outcome.
+  if (isLegacyPinHash(configuredHash)) {
+    setPinHash(hashPin(pin)).catch(() => {});
+  }
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(), {
     httpOnly: true,
-    secure: false, // aplikasi lokal, diakses via http://127.0.0.1
+    secure: isSecureDeployment(), // true saat APP_BASE_URL="https://...", false untuk http://127.0.0.1 lokal
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DURATION_HOURS * 60 * 60,
@@ -79,6 +93,7 @@ export async function verifyPinFormAction(
  * menaikkan.
  */
 export async function logout(): Promise<void> {
+  void logSecurityEvent("LOGOUT");
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
   redirect("/lock");
@@ -98,9 +113,10 @@ export async function extendSession(): Promise<{ success: boolean }> {
   if (!isValidSessionToken(current)) {
     return { success: false };
   }
+  void logSecurityEvent("SESSION_EXTENDED");
   cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(), {
     httpOnly: true,
-    secure: false, // aplikasi lokal, diakses via http://127.0.0.1
+    secure: isSecureDeployment(), // true saat APP_BASE_URL="https://...", false untuk http://127.0.0.1 lokal
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DURATION_HOURS * 60 * 60,

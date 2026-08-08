@@ -29,6 +29,7 @@ const ADMIN_ITEMS = [
   { href: "/admin/backup", label: "Backup Data", icon: Archive },
   { href: "/admin/retensi", label: "Retensi Data", icon: Clock },
   { href: "/admin/ltkm", label: "Laporan LTKM", icon: TriangleAlert },
+  { href: "/admin/security-log", label: "Log Keamanan", icon: ShieldCheck },
   { href: "/admin/ai-processing", label: "AI Processing", icon: BrainCircuit },
   { href: "/admin/knowledge-base", label: "Knowledge Base", icon: BookMarked },
   { href: "/admin/appearance", label: "Tampilan", icon: ImageIcon },

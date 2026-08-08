@@ -24,3 +24,8 @@ export const PDF_ARCHIVE_DIR = path.join(process.cwd(), "storage", "archive");
 // lib/actions/heroSettings.ts. Disimpan terpisah dari UPLOAD_DIR karena
 // bukan dokumen CDD (tidak tunduk retensi FR-5).
 export const HERO_DIR = path.join(process.cwd(), "storage", "hero");
+
+// Security event log — append-only NDJSON, satu baris JSON per event.
+// File-based (bukan tabel DB) supaya tamper-resistance lebih baik dan
+// tidak terkena cascade delete kalau tabel Customer dihapus.
+export const SECURITY_LOG_PATH = path.join(process.cwd(), "storage", "security.log");

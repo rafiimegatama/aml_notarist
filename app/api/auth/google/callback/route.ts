@@ -5,6 +5,7 @@ import {
   PIN_RESET_COOKIE_NAME,
   PIN_RESET_TOKEN_MINUTES,
   createPinResetToken,
+  isSecureDeployment,
   isValidOAuthState,
 } from "@/lib/auth";
 import { exchangeCodeForIdentity, getGoogleOAuthConfig } from "@/lib/googleOAuth";
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
     return response;
   }
 
-  const redirectUri = new URL("/api/auth/google/callback", request.url).toString();
+  const appBase = process.env.APP_BASE_URL?.replace(/\/$/, "") ?? new URL("/", request.url).origin;
+  const redirectUri = `${appBase}/api/auth/google/callback`;
 
   let identity;
   try {
@@ -70,7 +72,7 @@ export async function GET(request: NextRequest) {
   response.cookies.delete(OAUTH_STATE_COOKIE_NAME);
   response.cookies.set(PIN_RESET_COOKIE_NAME, createPinResetToken(), {
     httpOnly: true,
-    secure: false, // aplikasi lokal, diakses via http://127.0.0.1
+    secure: isSecureDeployment(), // true saat APP_BASE_URL="https://...", false untuk http://127.0.0.1 lokal
     sameSite: "lax",
     path: "/",
     maxAge: PIN_RESET_TOKEN_MINUTES * 60,

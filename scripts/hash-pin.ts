@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { hashPin } from "../lib/auth";
 
 const pin = process.argv[2];
 if (!pin || !/^\d{4,6}$/.test(pin)) {
@@ -6,6 +6,6 @@ if (!pin || !/^\d{4,6}$/.test(pin)) {
   process.exit(1);
 }
 
-const hash = createHash("sha256").update(pin).digest("hex");
+const hash = hashPin(pin);
 console.log("Tempel baris ini ke .env:\n");
 console.log(`PIN_HASH="${hash}"`);

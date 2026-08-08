@@ -53,6 +53,7 @@ next-env.d.ts
 /storage/backups/
 /storage/archive/
 /storage/hdd-sync-meta.json
+/storage/security.log
 
 # PM2 process-supervisor logs (npm run up / down / status / logs)
 /logs/

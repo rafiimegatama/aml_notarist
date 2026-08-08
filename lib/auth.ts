@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 // ------------------------------------------------------------------
 // FR-6B — PIN gate. Defaults proposed in PRD §7/§FR-6B ("confirm the exact
@@ -16,6 +16,17 @@ export const SESSION_DURATION_HOURS = 10;
 export const LOCKOUT_THRESHOLD = 3; // percobaan salah berurutan sebelum terkunci
 export const LOCKOUT_DURATION_MINUTES = 5;
 
+/**
+ * Returns true when APP_BASE_URL starts with "https://" — used to set the
+ * Secure flag on every session/auth cookie. Must be true for HTTPS and false
+ * for plain HTTP (browsers reject Secure cookies sent over http://). Defaults
+ * to false so the local http://127.0.0.1 deployment keeps working unchanged
+ * when APP_BASE_URL is not set.
+ */
+export function isSecureDeployment(): boolean {
+  return process.env.APP_BASE_URL?.startsWith("https://") ?? false;
+}
+
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
@@ -26,8 +37,39 @@ function getSessionSecret(): string {
   return secret;
 }
 
+// ------------------------------------------------------------------
+// PIN hashing — scrypt (Node.js built-in, memory-hard, zero external deps).
+// Format: $scrypt$N=32768,r=8,p=1$<salt-base64>$<hash-base64>
+// N=2^15, r=8, p=1 → ~30ms per derivation, 32MB memory. Offline brute-force
+// of 1M PIN combinations (4-6 digit) ≈ 8 hours. Online brute-force already
+// blocked by lockout (3 attempts / 5 min). BitLocker on disk remains required.
+// ------------------------------------------------------------------
+const SCRYPT_N = 32768; // 2^15 — cost parameter
+const SCRYPT_R = 8;     // block size
+const SCRYPT_P = 1;     // parallelization
+const SCRYPT_KEYLEN = 32;
+const SCRYPT_SALT_BYTES = 16;
+const SCRYPT_MAXMEM = 64 * 1024 * 1024; // 64MB — comfortably above 32MB requirement
+
+const SCRYPT_HASH_RE = /^\$scrypt\$N=(\d+),r=(\d+),p=(\d+)\$([A-Za-z0-9+/=]+)\$([A-Za-z0-9+/=]+)$/;
+const LEGACY_SHA256_RE = /^[0-9a-f]{64}$/;
+
 export function hashPin(pin: string): string {
-  return createHash("sha256").update(pin).digest("hex");
+  const salt = randomBytes(SCRYPT_SALT_BYTES);
+  const derived = scryptSync(pin, salt, SCRYPT_KEYLEN, {
+    N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: SCRYPT_MAXMEM,
+  });
+  return `$scrypt$N=${SCRYPT_N},r=${SCRYPT_R},p=${SCRYPT_P}$${salt.toString("base64")}$${derived.toString("base64")}`;
+}
+
+/**
+ * True when the stored hash is a bare SHA-256 hex string (legacy format from
+ * before the scrypt upgrade). Callers use this to transparently rehash on
+ * successful login — see lib/actions/auth.ts verifyPin().
+ */
+export function isLegacyPinHash(hash: string | null): boolean {
+  if (!hash) return false;
+  return LEGACY_SHA256_RE.test(hash);
 }
 
 /**
@@ -39,14 +81,37 @@ export function hashPin(pin: string): string {
  * dipakai supaya durasi perbandingan tidak membocorkan info lewat timing
  * attack. Return false (bukan throw) kalau configuredHash null (belum
  * dikonfigurasi) — caller (verifyPin action) yang memutuskan pesan errornya.
+ *
+ * Auto-detects format: legacy SHA-256 (bare 64-char hex) vs new scrypt
+ * ($scrypt$...). Legacy hashes still verify correctly — caller should check
+ * isLegacyPinHash() after a successful verify and rehash if needed.
  */
 export function verifyPinHash(pin: string, configuredHash: string | null): boolean {
   if (!configuredHash) return false;
-  const inputHash = hashPin(pin);
-  const a = Buffer.from(inputHash, "hex");
-  const b = Buffer.from(configuredHash, "hex");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+
+  // Legacy SHA-256 (no salt, no KDF) — pre-scrypt upgrade
+  if (LEGACY_SHA256_RE.test(configuredHash)) {
+    const inputHash = createHash("sha256").update(pin).digest("hex");
+    const a = Buffer.from(inputHash, "hex");
+    const b = Buffer.from(configuredHash, "hex");
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  }
+
+  // scrypt format: $scrypt$N=...,r=...,p=...$<salt-b64>$<hash-b64>
+  const match = configuredHash.match(SCRYPT_HASH_RE);
+  if (!match) return false;
+
+  const [, nStr, rStr, pStr, saltB64, hashB64] = match;
+  const salt = Buffer.from(saltB64, "base64");
+  const storedHash = Buffer.from(hashB64, "base64");
+
+  const derived = scryptSync(pin, salt, storedHash.length, {
+    N: Number(nStr), r: Number(rStr), p: Number(pStr), maxmem: SCRYPT_MAXMEM,
+  });
+
+  if (derived.length !== storedHash.length) return false;
+  return timingSafeEqual(derived, storedHash);
 }
 
 // ------------------------------------------------------------------

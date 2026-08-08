@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { decryptDocumentBuffer, encryptDocumentBuffer } from "@/lib/documentEncryption";
+import {
+  decryptDocumentBuffer,
+  decryptJsonField,
+  decryptString,
+  encryptDocumentBuffer,
+  encryptJson,
+  encryptString,
+} from "@/lib/documentEncryption";
 
 describe("documentEncryption (Phase 3 — encrypt PII at rest)", () => {
   it("round-trips arbitrary binary content exactly", () => {
@@ -41,5 +48,37 @@ describe("documentEncryption (Phase 3 — encrypt PII at rest)", () => {
     process.env.SESSION_SECRET = "a-completely-different-secret";
     expect(() => decryptDocumentBuffer(encrypted)).toThrow();
     process.env.SESSION_SECRET = original;
+  });
+});
+
+describe("string/JSON encryption (OCR data at rest)", () => {
+  it("encryptString/decryptString round-trips text", () => {
+    const text = "Nama: BUDI SANTOSO\nNIK: 3174052501900001";
+    const encrypted = encryptString(text);
+    expect(encrypted).toMatch(/^\$enc\$v1\$/);
+    expect(decryptString(encrypted)).toBe(text);
+  });
+
+  it("decryptString returns legacy plaintext as-is", () => {
+    const legacy = "ini teks OCR lama tanpa enkripsi";
+    expect(decryptString(legacy)).toBe(legacy);
+  });
+
+  it("encryptJson/decryptJsonField round-trips objects", () => {
+    const guesses = { "nama": "BUDI", "nik": "3174052501900001" };
+    const encrypted = encryptJson(guesses);
+    expect(typeof encrypted).toBe("string");
+    expect(encrypted).toMatch(/^\$enc\$v1\$/);
+    expect(decryptJsonField(encrypted)).toEqual(guesses);
+  });
+
+  it("decryptJsonField handles legacy parsed objects", () => {
+    const legacy = { nama: "BUDI" };
+    expect(decryptJsonField(legacy)).toEqual(legacy);
+  });
+
+  it("decryptJsonField returns null for null/undefined", () => {
+    expect(decryptJsonField(null)).toBeNull();
+    expect(decryptJsonField(undefined)).toBeNull();
   });
 });

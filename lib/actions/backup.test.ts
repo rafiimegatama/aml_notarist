@@ -1,9 +1,10 @@
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import unzipper from "unzipper";
-import { buildBackupZip } from "@/lib/backupArchive";
+import { buildBackupZip, verifyBackupChecksum, type BackupMeta } from "@/lib/backupArchive";
 
 /**
  * FR-1.1 (Phase 4) — verifies the real zip-building logic end-to-end against
@@ -49,7 +50,7 @@ describe("buildBackupZip — zip integrity", () => {
     const directory = await unzipper.Open.file(zipPath);
     const names = directory.files.map((f) => f.path).sort();
 
-    expect(names).toEqual(["dev.db", "uploads/scan-a.enc", "uploads/scan-b.enc"]);
+    expect(names).toEqual(["dev.db", "manifest.json", "uploads/scan-a.enc", "uploads/scan-b.enc"]);
 
     const dbEntry = directory.files.find((f) => f.path === "dev.db")!;
     const dbContent = await dbEntry.buffer();
@@ -75,15 +76,66 @@ describe("buildBackupZip — zip integrity", () => {
     expect(names).not.toContain("dev.db");
   });
 
-  it("records lastManualBackupAt / fileName in meta.json next to the zip (never mistaking silence for success)", async () => {
+  it("records lastManualBackupAt / fileName / sha256 in meta.json", async () => {
     const { dbPath, uploadDir, backupDir } = await setupFixture();
 
     const result = await buildBackupZip({ dbPath, uploadDir, backupDir });
     expect(result.success).toBe(true);
     if (!result.success) return;
 
-    const meta = JSON.parse(await readFile(path.join(backupDir, "meta.json"), "utf-8"));
+    const meta: BackupMeta = JSON.parse(await readFile(path.join(backupDir, "meta.json"), "utf-8"));
     expect(meta.fileName).toBe(result.fileName);
     expect(meta.lastManualBackupAt).toBe(result.createdAt);
+    expect(meta.sha256).toMatch(/^[0-9a-f]{64}$/);
+
+    // Verify checksum actually matches the zip file
+    const zipBuf = await readFile(path.join(backupDir, result.fileName));
+    const actual = createHash("sha256").update(zipBuf).digest("hex");
+    expect(meta.sha256).toBe(actual);
+  });
+
+  it("includes manifest.json with per-file SHA-256 hashes", async () => {
+    const { dbPath, uploadDir, backupDir } = await setupFixture();
+    await mkdir(uploadDir, { recursive: true });
+    await writeFile(path.join(uploadDir, "doc.enc"), "encrypted-data");
+
+    const result = await buildBackupZip({ dbPath, uploadDir, backupDir });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const zipPath = path.join(backupDir, result.fileName);
+    const directory = await unzipper.Open.file(zipPath);
+    const manifestEntry = directory.files.find((f) => f.path === "manifest.json");
+    expect(manifestEntry).toBeDefined();
+
+    const manifest = JSON.parse((await manifestEntry!.buffer()).toString("utf-8"));
+    expect(manifest["dev.db"]).toMatch(/^[0-9a-f]{64}$/);
+    expect(manifest["uploads/doc.enc"]).toMatch(/^[0-9a-f]{64}$/);
+
+    // Verify the manifest hash matches actual file content
+    const dbHash = createHash("sha256").update("fake-sqlite-content").digest("hex");
+    expect(manifest["dev.db"]).toBe(dbHash);
+  });
+
+  it("verifyBackupChecksum detects valid and tampered zips", async () => {
+    const { dbPath, uploadDir, backupDir } = await setupFixture();
+    const result = await buildBackupZip({ dbPath, uploadDir, backupDir });
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const meta: BackupMeta = JSON.parse(await readFile(path.join(backupDir, "meta.json"), "utf-8"));
+    const zipPath = path.join(backupDir, result.fileName);
+
+    // Valid
+    const valid = await verifyBackupChecksum(zipPath, meta.sha256);
+    expect(valid.valid).toBe(true);
+
+    // Wrong checksum
+    const invalid = await verifyBackupChecksum(zipPath, "0".repeat(64));
+    expect(invalid.valid).toBe(false);
+
+    // Missing file
+    const missing = await verifyBackupChecksum("/nonexistent.zip", meta.sha256);
+    expect(missing.valid).toBe(false);
   });
 });

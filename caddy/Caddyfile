@@ -1,0 +1,61 @@
+# Caddyfile — AML Notarist Intranet Reverse Proxy
+# =====================================================================
+# Dokumentasi lengkap: docs/intranet-deployment-id.md
+#
+# Prasyarat sebelum menjalankan file ini:
+#   1. mkcert sudah terinstall dan CA-nya sudah ditrust di PC server
+#      (mkcert -install)
+#   2. Sertifikat sudah dibuat dan disalin ke C:\caddy\certs\:
+#      mkcert amlguard.notaris.co.id
+#      xcopy amlguard.notaris.co.id.pem     C:\caddy\certs\ /Y
+#      xcopy amlguard.notaris.co.id-key.pem C:\caddy\certs\ /Y
+#   3. Aplikasi AML Notarist sudah jalan di 127.0.0.1:4001
+#      (npm run up)
+#
+# Jalankan Caddy:
+#   C:\caddy\caddy.exe run --config C:\caddy\Caddyfile
+#
+# Atau sebagai Windows Service (sekali saja, perlu cmd Administrator):
+#   C:\caddy\caddy.exe service install
+#   net start caddy
+# =====================================================================
+
+{
+    # Nonaktifkan HTTPS otomatis Caddy (kita menyediakan sertifikat
+    # mkcert sendiri — tidak perlu ACME/Let's Encrypt).
+    auto_https off
+
+    # Caddy admin API hanya di localhost supaya tidak diekspos ke LAN.
+    admin 127.0.0.1:2019
+}
+
+amlguard.notaris.co.id {
+    # Sertifikat TLS dari mkcert.
+    # Sesuaikan path kalau sertifikat disimpan di lokasi lain.
+    tls C:\caddy\certs\amlguard.notaris.co.id.pem C:\caddy\certs\amlguard.notaris.co.id-key.pem
+
+    # Forward ke Next.js di localhost — port 4001 TIDAK diekspos langsung
+    # ke LAN; seluruh trafik LAN masuk lewat Caddy di port 443.
+    reverse_proxy 127.0.0.1:4001 {
+        # Beritahu Next.js bahwa koneksi aslinya HTTPS supaya:
+        #   - Cookie Secure ter-set dengan benar (lihat isSecureDeployment()
+        #     di lib/auth.ts — membaca APP_BASE_URL, bukan header ini)
+        #   - Redirect URI OAuth "Lupa PIN" dibangun dari APP_BASE_URL
+        #     (bukan dari request.url yang datang dari Caddy via HTTP)
+        header_up X-Forwarded-Proto "https"
+        header_up X-Forwarded-Host  "amlguard.notaris.co.id"
+        # Hapus X-Forwarded-For yang mungkin dipalsukan klien upstream.
+        header_up -X-Forwarded-For
+        header_up X-Real-IP {remote_host}
+    }
+
+    # Log akses ke file (opsional). Nonaktifkan atau perkecil roll_keep
+    # kalau disk server terbatas.
+    log {
+        output file C:\caddy\logs\access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}

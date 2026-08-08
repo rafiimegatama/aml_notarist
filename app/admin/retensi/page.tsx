@@ -12,6 +12,7 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { RetentionDeleteButton } from "@/components/admin/RetentionDeleteButton";
 
 export const metadata: Metadata = {
   title: "Retensi Data",
@@ -88,13 +89,19 @@ export default async function AdminRetensiPage() {
                         </Badge>
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        <Link
-                          href={`/cdd/${c.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-hover transition-colors hover:bg-brand-subtle"
-                        >
-                          <Eye className="h-4 w-4" strokeWidth={2} />
-                          Lihat Detail
-                        </Link>
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/cdd/${c.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-hover transition-colors hover:bg-brand-subtle"
+                          >
+                            <Eye className="h-4 w-4" strokeWidth={2} />
+                            Lihat
+                          </Link>
+                          <RetentionDeleteButton
+                            customerId={c.id}
+                            customerName={name}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

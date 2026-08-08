@@ -8,7 +8,7 @@ import { CustomerType } from "@/lib/generated/prisma/enums";
 import { extractTextFromImage } from "@/lib/ocr/runOcr";
 import { extractFieldGuesses, LABEL_MAPS, type FieldGuesses } from "@/lib/ocr/extractFields";
 import { UPLOAD_DIR } from "@/lib/storage";
-import { encryptDocumentBuffer } from "@/lib/documentEncryption";
+import { decryptJsonField, decryptString, encryptDocumentBuffer, encryptJson, encryptString } from "@/lib/documentEncryption";
 import { backupDocumentToDrive } from "@/lib/actions/driveBackup";
 import { matchesFileSignature } from "@/lib/fileSignature";
 
@@ -78,8 +78,8 @@ export async function uploadAndExtractDocument(
       fileName: file.name,
       filePath: storedName,
       mimeType: file.type,
-      ocrRawText: rawText || null,
-      fieldGuesses,
+      ocrRawText: rawText ? encryptString(rawText) : null,
+      fieldGuesses: Object.keys(fieldGuesses).length > 0 ? encryptJson(fieldGuesses) : undefined,
     },
   });
 
@@ -115,7 +115,7 @@ export async function loadDraftDocument(
   }
   return {
     id: doc.id,
-    rawText: doc.ocrRawText ?? "",
-    fieldGuesses: (doc.fieldGuesses as FieldGuesses | null) ?? {},
+    rawText: doc.ocrRawText ? decryptString(doc.ocrRawText) : "",
+    fieldGuesses: decryptJsonField<FieldGuesses>(doc.fieldGuesses) ?? {},
   };
 }
