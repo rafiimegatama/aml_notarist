@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Archive, Download, CheckCircle2 } from "lucide-react";
-import { createBackup, type CreateBackupResult } from "@/lib/actions/backup";
+import { createBackup } from "@/lib/actions/backup";
+import type { CreateBackupResult } from "@/lib/backupArchive";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 
