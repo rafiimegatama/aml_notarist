@@ -153,31 +153,75 @@ seperti `npm run start` biasa) — app tetap terikat ke localhost saja di port
 standar yang sama, tidak diekspos ke jaringan (FR-6A), walau dijalankan
 lewat PM2.
 
-## Keamanan Data — Rekomendasi Enkripsi (FR-5)
+## Testing & CI (Phase 6)
+
+`npm test` menjalankan Vitest (`vitest run`) — cakupan prioritas sesuai
+Phase 6 dari `aml_phase_2_brief.md`:
+
+1. `lib/status.test.ts` — setiap cabang `computeCompletionBreakdown()`
+   (dipakai `computeAndPersistStatus()` untuk menentukan status DRAFT vs
+   COMPLETE), termasuk jalur hard-coded `eddOk = false` untuk Korporasi/Legal
+   Arrangement berisiko Tinggi (Known Gap #2).
+2. `lib/scoring.test.ts` — batas tiap kategori risiko (`computeRiskCategory`).
+3. `lib/auth.test.ts`, `lib/documentEncryption.test.ts`,
+   `lib/actions/backup.test.ts` — verifikasi PIN/sesi/lockout (FR-6B, Phase 2),
+   round-trip enkripsi dokumen (Phase 3), dan integritas isi zip backup
+   (FR-1.1, Phase 4).
+
+Test backup zip memakai direktori sementara (`os.tmpdir()`), TIDAK PERNAH
+menyentuh `storage/` asli — aman dijalankan kapan saja tanpa risiko terhadap
+data klien sungguhan. GitHub Actions (`.github/workflows/ci.yml`) menjalankan
+`prisma generate` + lint + `tsc --noEmit` + `npm test` di setiap push/PR ke
+`main` — CI ini murni untuk menangkap regresi selama development, BUKAN
+gerbang deploy (app ini deploy ke satu PC lokal lewat PM2, lihat bagian di
+atas, bukan ke cloud).
+
+## Keamanan Data — Enkripsi PII at Rest (subset FR-5, Phase 3)
 
 Aplikasi ini menyimpan data pribadi sensitif (scan KTP/NIK, data penghasilan)
 yang tunduk pada UU No. 27/2022 (UU PDP) — Pasal 39 ayat (1) mewajibkan
 "langkah teknis dan organisasi yang memadai" untuk melindungi data pribadi.
-Rekomendasi di bawah ini **didokumentasikan, bukan diimplementasikan** di
-codebase — enkripsi disk/OS di luar jangkauan aplikasi Next.js ini, dan
-keputusan mana yang dijalankan ada di tangan notaris/kantor, bukan default
-otomatis dari kode.
 
 1. **Lantai (wajib, murah, langsung bisa dilakukan hari ini):** aktifkan
    BitLocker (Windows) full-disk encryption di PC tempat aplikasi ini
    berjalan. Ini melindungi `prisma/dev.db` dan `storage/uploads/` kalau PC
-   atau harddisknya dicuri/hilang.
-2. **Lebih baik (opsional, butuh kerja tambahan):** enkripsi level-aplikasi
-   khusus untuk `storage/uploads/` — enkripsi saat file ditulis di
-   `uploadAndExtractDocument` (`lib/actions/document.ts`), dekripsi saat
-   dibaca di `app/api/documents/[id]/route.ts`. Belum dikerjakan di fase ini
-   — kalau mau dibangun, ini kandidat Fase berikutnya.
+   atau harddisknya dicuri/hilang — lapisan ini TIDAK digantikan oleh poin
+   2 di bawah, keduanya saling melengkapi.
+2. **Enkripsi level-aplikasi untuk `storage/uploads/` — SUDAH diimplementasikan
+   (Phase 3).** File scan dienkripsi AES-256-GCM saat ditulis di
+   `uploadAndExtractDocument` (`lib/actions/document.ts`) dan didekripsi saat
+   dibaca di `app/api/documents/[id]/route.ts` dan `backupDocumentToDrive`
+   (`lib/actions/driveBackup.ts`). Kunci diturunkan dari `SESSION_SECRET`
+   (lihat `lib/documentEncryption.ts`) — TIDAK ada env var baru, dan kunci
+   TIDAK pernah tersimpan di dalam `dev.db`. OCR (Tesseract) dijalankan di
+   memori dari buffer sebelum dienkripsi, jadi plaintext gambar tidak pernah
+   ditulis ke disk sama sekali, bahkan sementara.
+   - **Residual risk — JANGAN dianggap solusi penuh:** di aplikasi satu-PC
+     seperti ini, kunci enkripsi (`SESSION_SECRET` di `.env`) tetap hidup di
+     disk yang sama dengan data terenkripsi. Ini menaikkan standar terhadap
+     "seseorang menyalin folder `storage/`" (mis. lewat USB atau share
+     jaringan), TAPI TIDAK terhadap "seseorang punya akses penuh ke PC ini"
+     (login Windows, akses fisik ke disk yang sudah ter-mount). Untuk
+     ancaman itu, poin 1 (BitLocker) tetap wajib, bukan opsional.
+   - File yang SUDAH terunggah sebelum Phase 3 aktif (kalau ada) tetap
+     plaintext di disk — pada saat brief ini ditulis `storage/uploads/`
+     kosong (belum ada scan tersimpan), jadi tidak ada migrasi yang
+     diperlukan. Kalau di kemudian hari ditemukan file plaintext lama,
+     enkripsi manual satu-persatu lewat `encryptDocumentBuffer` sebelum
+     menganggap direktori ini "aman".
+   - Mengganti `SESSION_SECRET` di server yang sudah punya data membuat
+     SEMUA file yang sudah terunggah tidak bisa didekripsi lagi (selain
+     me-logout semua sesi aktif, efek yang sudah ada sebelumnya) — backup
+     `SESSION_SECRET` lama di tempat aman sebelum mengganti.
 3. **Backup ikut kewajiban yang sama.** Begitu FR-1.2/1.3/1.4 (HDD/Sheets/
-   Drive) aktif, foto KTP yang tidak terenkripsi yang tersimpan di Google
-   Drive pribadi berpotensi jadi celah kebocoran yang LEBIH besar daripada
-   file aslinya. Pakai akun Google khusus (bukan akun pribadi notaris)
-   untuk backup, kunci akses sharing-nya, dan pertimbangkan enkripsi
-   sebelum upload.
+   Drive) aktif: salinan HDD (FR-1.2) dan zip manual (FR-1.1) menyalin file
+   APA ADANYA (ciphertext, konsisten dengan poin 2), tapi backup ke Google
+   Drive (FR-1.4) sengaja mendekripsi dulu sebelum upload (lihat
+   `lib/actions/driveBackup.ts`) supaya file di Drive tetap bisa dibuka
+   sebagai gambar biasa — artinya foto KTP yang TIDAK terenkripsi ada di
+   Drive pribadi tersebut. Pakai akun Google khusus (bukan akun pribadi
+   notaris) untuk backup, kunci akses sharing-nya, dan pertimbangkan ini
+   celah kebocoran yang LEBIH besar daripada file aslinya di disk lokal.
 4. **Retensi vs. penghapusan.** Data CDD terstruktur (nama, No. Identitas,
    tanggal) kemungkinan besar yang benar-benar wajib disimpan sesuai
    ketentuan retensi (lihat `lib/retention.ts`) — apakah foto scan asli

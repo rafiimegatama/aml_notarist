@@ -12,8 +12,17 @@ export function fmtDateTime(date: Date | null | undefined): string {
   return date.toISOString();
 }
 
+// Karakter yang membuat Google Sheets menafsirkan sel sebagai formula —
+// baris ditulis via valueInputOption=USER_ENTERED (lib/googleSheets/client.ts),
+// jadi nilai apa pun yang diawali salah satu ini AKAN dieksekusi sebagai
+// formula saat sheet dibuka, bukan cuma teks. Field CDD bebas-teks (nama,
+// alamat, catatan, dll.) diisi notaris atau berasal dari saran OCR, jadi
+// tidak bisa diasumsikan aman. Sama seperti csvField() di lib/ltkmCsv.ts.
+const FORMULA_TRIGGER_CHARS = ["=", "+", "-", "@"];
+
 export function fmtStr(value: string | null | undefined): string {
-  return value ?? "";
+  const str = value ?? "";
+  return str && FORMULA_TRIGGER_CHARS.includes(str[0]) ? `'${str}` : str;
 }
 
 export function fmtInt(value: number | null | undefined): string {

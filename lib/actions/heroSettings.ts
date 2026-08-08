@@ -6,6 +6,7 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { HERO_DIR } from "@/lib/storage";
+import { matchesFileSignature } from "@/lib/fileSignature";
 
 const SETTINGS_KEY = "hero_banner";
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB — cukup untuk foto latar resolusi tinggi
@@ -56,11 +57,15 @@ export async function uploadHeroImage(formData: FormData): Promise<UploadHeroIma
     return { success: false, error: "Ukuran gambar maksimal 8MB." };
   }
 
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!matchesFileSignature(file.type, buffer)) {
+    return { success: false, error: "Isi file tidak cocok dengan format yang diklaim (PNG/JPG/WEBP)." };
+  }
+
   const current = await getHeroBannerSettings();
   await mkdir(HERO_DIR, { recursive: true });
 
   const filename = `${randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(HERO_DIR, filename), buffer);
 
   if (current.filename) {

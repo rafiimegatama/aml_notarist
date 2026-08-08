@@ -4,12 +4,13 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/lib/generated/prisma/client";
 import { CustomerType } from "@/lib/generated/prisma/enums";
 import { extractTextFromImage } from "@/lib/ocr/runOcr";
 import { extractFieldGuesses, LABEL_MAPS, type FieldGuesses } from "@/lib/ocr/extractFields";
 import { UPLOAD_DIR } from "@/lib/storage";
+import { encryptDocumentBuffer } from "@/lib/documentEncryption";
 import { backupDocumentToDrive } from "@/lib/actions/driveBackup";
+import { matchesFileSignature } from "@/lib/fileSignature";
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB — cukup untuk foto kamera HP resolusi tinggi
 const ALLOWED_MIME: Record<string, string> = {
@@ -43,15 +44,21 @@ export async function uploadAndExtractDocument(
     return { success: false, error: "Ukuran file maksimal 15MB." };
   }
 
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (!matchesFileSignature(file.type, buffer)) {
+    return { success: false, error: "Isi file tidak cocok dengan format yang diklaim (JPG/PNG/WEBP)." };
+  }
+
   await mkdir(UPLOAD_DIR, { recursive: true });
   const storedName = `${randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, storedName), buffer);
 
   let rawText = "";
   let words: Awaited<ReturnType<typeof extractTextFromImage>>["words"] = [];
   try {
-    const ocrResult = await extractTextFromImage(path.join(UPLOAD_DIR, storedName));
+    // OCR dijalankan di memori dari buffer plaintext — file yang ditulis ke
+    // disk di bawah ini SELALU ciphertext (Phase 3, lihat lib/documentEncryption.ts),
+    // plaintext gambar tidak pernah ditulis ke storage/uploads/.
+    const ocrResult = await extractTextFromImage(buffer);
     rawText = ocrResult.text;
     words = ocrResult.words;
   } catch (err) {
@@ -59,6 +66,8 @@ export async function uploadAndExtractDocument(
     // dengan form kosong, file scan tetap tersimpan sebagai lampiran.
     console.error("OCR gagal:", err);
   }
+
+  await writeFile(path.join(UPLOAD_DIR, storedName), encryptDocumentBuffer(buffer));
 
   const labelMap = LABEL_MAPS[formType];
   const fieldGuesses = rawText ? extractFieldGuesses(rawText, labelMap, words) : {};
@@ -109,22 +118,4 @@ export async function loadDraftDocument(
     rawText: doc.ocrRawText ?? "",
     fieldGuesses: (doc.fieldGuesses as FieldGuesses | null) ?? {},
   };
-}
-
-/**
- * Dipanggil di dalam $transaction createXCustomer setelah Customer dibuat,
- * untuk menautkan dokumen scan (kalau ada) ke record yang baru dibuat.
- * updateMany + guard customerId:null dipakai supaya idempotent & tidak
- * throw kalau draftUploadId sudah tidak valid/sudah pernah dipakai.
- */
-export async function attachDraftDocument(
-  tx: Prisma.TransactionClient,
-  draftUploadId: string | undefined,
-  customerId: string
-): Promise<void> {
-  if (!draftUploadId) return;
-  await tx.customerDocument.updateMany({
-    where: { id: draftUploadId, customerId: null },
-    data: { customerId },
-  });
 }

@@ -7,32 +7,6 @@ import { CaseStatus } from "@/lib/generated/prisma/enums";
 import { logActivity } from "@/lib/activityLog";
 
 /**
- * Setiap Customer yang baru menjadi berisiko Tinggi otomatis dijadikan Case
- * — dipanggil dari DALAM transaksi saveRiskAssessment (lib/actions/
- * riskAssessment.ts), TEPAT SETELAH riskCategory dihitung. Ini TIDAK
- * mengubah cara riskCategory dihitung sama sekali (lihat lib/scoring.ts,
- * tidak disentuh) — murni efek samping tambahan, pola yang sama dengan
- * computeAndPersistStatus/logActivity yang sudah dipanggil di titik yang
- * sama. Idempotent: kalau Case sudah ada (mis. sempat turun ke Sedang lalu
- * naik lagi ke Tinggi), tidak dibuat ulang/di-reset — status existing case
- * dibiarkan apa adanya, itu keputusan reviewer untuk ditindaklanjuti manual.
- */
-export async function ensureCaseForHighRisk(
-  tx: Prisma.TransactionClient,
-  customerId: string
-): Promise<void> {
-  const existing = await tx.case.findUnique({ where: { customerId }, select: { id: true } });
-  if (existing) return;
-  await tx.case.create({
-    data: {
-      customerId,
-      status: CaseStatus.EDD_REQUIRED,
-      checklist: { create: {} },
-    },
-  });
-}
-
-/**
  * Dipanggil dari saveHighRiskAdditionalInfo setelah form EDD tersimpan —
  * memindahkan Case dari EDD_REQUIRED/EDD_IN_PROGRESS ke
  * WAITING_MANUAL_REVIEW. Tidak melakukan apa pun kalau Case sudah di status
@@ -70,10 +44,6 @@ const CASE_DETAIL_INCLUDE = {
 
 export async function getCaseById(id: string) {
   return prisma.case.findUnique({ where: { id }, include: CASE_DETAIL_INCLUDE });
-}
-
-export async function getCaseByCustomerId(customerId: string) {
-  return prisma.case.findUnique({ where: { customerId }, include: CASE_DETAIL_INCLUDE });
 }
 
 /** Nama tampilan kandidat duplikat — dipanggil dari halaman Case untuk render CaseDuplicateCheck.candidateCustomerId. */

@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { UPLOAD_DIR } from "@/lib/storage";
+import { decryptDocumentBuffer } from "@/lib/documentEncryption";
 
 export async function GET(
   _request: Request,
@@ -18,7 +19,8 @@ export async function GET(
   // uploadAndExtractDocument) — tidak pernah berasal langsung dari input
   // pengguna, jadi aman dipakai untuk path.join tanpa risiko path traversal.
   try {
-    const buffer = await readFile(path.join(UPLOAD_DIR, doc.filePath));
+    const encrypted = await readFile(path.join(UPLOAD_DIR, doc.filePath));
+    const buffer = decryptDocumentBuffer(encrypted);
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": doc.mimeType,

@@ -20,7 +20,13 @@ export type OcrResult = { text: string; words: OcrWord[] };
 // FR-3 (Should) — sebelumnya hanya `text` gabungan yang disimpan, confidence
 // per-word dari Tesseract dibuang. Di-capture di sini supaya extractFields.ts
 // bisa memetakannya balik ke tiap field guess (lihat mapWordsToGuess).
-export async function extractTextFromImage(filePath: string): Promise<OcrResult> {
+//
+// Menerima Buffer (bukan filePath) sejak Phase 3 (enkripsi PII saat
+// rest) — file di storage/uploads/ sekarang selalu berupa ciphertext, jadi
+// OCR dijalankan di memori dari buffer plaintext hasil upload SEBELUM
+// dienkripsi & ditulis ke disk (lihat uploadAndExtractDocument). Plaintext
+// gambar tidak pernah menyentuh disk sama sekali.
+export async function extractTextFromImage(image: Buffer): Promise<OcrResult> {
   await mkdir(OCR_CACHE_DIR, { recursive: true });
 
   const worker = await createWorker("ind+eng", 1, {
@@ -32,7 +38,7 @@ export async function extractTextFromImage(filePath: string): Promise<OcrResult>
     // itu sendiri false secara default (lihat defaultOutput.js tesseract.js).
     const {
       data: { text, blocks },
-    } = await worker.recognize(filePath, {}, { blocks: true });
+    } = await worker.recognize(image, {}, { blocks: true });
 
     const words: OcrWord[] = [];
     for (const block of blocks ?? []) {

@@ -14,8 +14,6 @@
 
 export type ProviderId = "ollama" | "gemini";
 
-export const PROVIDER_IDS: ProviderId[] = ["ollama", "gemini"];
-
 export type AiCapability =
   | "extractDocument"
   | "extractIdentity"

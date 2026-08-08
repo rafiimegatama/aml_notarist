@@ -4,8 +4,6 @@ import { revalidatePath } from "next/cache";
 import { getAiSettings, getAiSettingsPublic, updateAiSettings, type AiSettingsPublic } from "@/lib/ai/config";
 import { getProvider } from "@/lib/ai/provider-factory";
 import { OllamaProvider } from "@/lib/ai/providers/ollama-provider";
-import { AIProcessingService } from "@/lib/ai/services/ai-processing";
-import { getAiUsageSummary, getRecentAiRequests } from "@/lib/ai/logging";
 import type { AiCapability, AiMode, OllamaModelInfo, ProviderHealth, ProviderId } from "@/lib/ai/provider";
 
 const SETTINGS_PATH = "/admin/ai-processing";
@@ -49,10 +47,6 @@ export async function testProviderConnectionAction(providerId: ProviderId): Prom
   return provider.isHealthy();
 }
 
-export async function getAiHealthSnapshotAction() {
-  return AIProcessingService.getHealthSnapshot();
-}
-
 export type ListOllamaModelsResult =
   | { success: true; models: OllamaModelInfo[] }
   | { success: false; error: string };
@@ -84,12 +78,4 @@ export async function deleteOllamaModelAction(model: string): Promise<DeleteOlla
 
 export async function setDefaultLocalModelAction(model: string): Promise<UpdateAiSettingsResult> {
   return updateAiSettingsAction({ local: { model } });
-}
-
-export async function getAiUsageSummaryAction(sinceHours = 24) {
-  return getAiUsageSummary(sinceHours);
-}
-
-export async function getRecentAiRequestsAction(limit = 50) {
-  return getRecentAiRequests(limit);
 }
