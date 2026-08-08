@@ -5,8 +5,10 @@ import { getBackupChannelsStatus } from "@/lib/actions/backupStatus";
 import { getLastBackupInfo } from "@/lib/actions/backup";
 import { getDriveConfig } from "@/lib/googleDrive/client";
 import { AIProcessingService } from "@/lib/ai/services/ai-processing";
+import { customerTypeLabels } from "@/lib/labels";
 import type { RiskTrendPoint } from "@/components/dashboard/RiskChart";
 import type { RiskDistribution } from "@/components/dashboard/RiskDonut";
+import type { RiskByTypePoint } from "@/components/dashboard/RiskByTypeChart";
 import type { ActivityFeedItem } from "@/components/dashboard/ActivityTimeline";
 import type { SystemHealthStatus } from "@/components/dashboard/SystemStatusCard";
 
@@ -115,6 +117,37 @@ export async function getRiskDistribution(): Promise<RiskDistribution> {
     else distribution.belumDinilai += 1;
   }
   return distribution;
+}
+
+/**
+ * Beda dimensi dari getRiskTrend (waktu x kategori risiko, sudah ada di
+ * RiskChart) — ini komposisi risiko PER JENIS CUSTOMER (Korporasi/
+ * Perorangan/Perikatan Lainnya), buat stacked bar chart baru di dashboard.
+ */
+export async function getRiskByCustomerType(): Promise<RiskByTypePoint[]> {
+  const customers = await prisma.customer.findMany({
+    select: { type: true, riskAssessment: { select: { riskCategory: true } } },
+  });
+
+  const buckets = {
+    PERORANGAN: { rendah: 0, sedang: 0, tinggi: 0, belumDinilai: 0 },
+    KORPORASI: { rendah: 0, sedang: 0, tinggi: 0, belumDinilai: 0 },
+    LEGAL_ARRANGEMENT: { rendah: 0, sedang: 0, tinggi: 0, belumDinilai: 0 },
+  };
+
+  for (const c of customers) {
+    const bucket = buckets[c.type];
+    const category = c.riskAssessment?.riskCategory;
+    if (category === "RENDAH") bucket.rendah += 1;
+    else if (category === "SEDANG") bucket.sedang += 1;
+    else if (category === "TINGGI") bucket.tinggi += 1;
+    else bucket.belumDinilai += 1;
+  }
+
+  return (["PERORANGAN", "KORPORASI", "LEGAL_ARRANGEMENT"] as const).map((type) => ({
+    type: customerTypeLabels[type],
+    ...buckets[type],
+  }));
 }
 
 export async function getRecentActivityFeed(limit = 12): Promise<ActivityFeedItem[]> {

@@ -35,6 +35,7 @@ import { HeroBanner } from "@/components/dashboard/HeroBanner";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { RiskChart } from "@/components/dashboard/RiskChart";
 import { RiskDonut } from "@/components/dashboard/RiskDonut";
+import { RiskByTypeChart } from "@/components/dashboard/RiskByTypeChart";
 import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline";
 import { QuickActionCard } from "@/components/dashboard/QuickActionCard";
 import { DashboardUtilityDial } from "@/components/dashboard/DashboardUtilityDial";
@@ -44,11 +45,13 @@ import {
   type CompletionBreakdown,
 } from "@/lib/status";
 import { isReviewOverdue } from "@/lib/reviewReminder";
+import { greetingForTime } from "@/lib/greeting";
 import { getHeroBannerSettings } from "@/lib/actions/heroSettings";
 import {
   getDashboardKpis,
   getPendingTasks,
   getRecentActivityFeed,
+  getRiskByCustomerType,
   getRiskDistribution,
   getRiskTrend,
   getSystemHealth,
@@ -78,13 +81,6 @@ function missingSectionsLabel(breakdown: CompletionBreakdown): string {
   if (breakdown.edd === "required_not_filled") missing.push("EDD");
   if (breakdown.edd === "manual_required") missing.push("EDD (proses manual di luar aplikasi)");
   return missing.length ? `Menunggu: ${missing.join(", ")}` : "";
-}
-
-function greetingForHour(hour: number): string {
-  if (hour < 11) return "Selamat Pagi";
-  if (hour < 15) return "Selamat Siang";
-  if (hour < 19) return "Selamat Sore";
-  return "Selamat Malam";
 }
 
 export default async function DashboardPage({
@@ -147,6 +143,7 @@ export default async function DashboardPage({
     kpis,
     riskTrend,
     riskDistribution,
+    riskByType,
     activityFeed,
     pendingTasks,
     systemHealth,
@@ -156,6 +153,7 @@ export default async function DashboardPage({
     getDashboardKpis(),
     getRiskTrend(90),
     getRiskDistribution(),
+    getRiskByCustomerType(),
     getRecentActivityFeed(10),
     getPendingTasks(),
     getSystemHealth(),
@@ -192,7 +190,7 @@ export default async function DashboardPage({
     <div className="space-y-8">
       <HeroBanner
         imageUrl={heroSettings.enabled && heroSettings.filename ? "/api/hero-image" : null}
-        greeting={greetingForHour(now.getHours())}
+        greeting={greetingForTime(now)}
         subtitle="Kelola kepatuhan AML secara efisien hari ini."
         searchDefaultValue={q ?? ""}
       />
@@ -223,6 +221,8 @@ export default async function DashboardPage({
         </div>
         <RiskDonut distribution={riskDistribution} />
       </div>
+
+      <RiskByTypeChart data={riskByType} />
 
       {/* ============ Recent Activity ============ */}
       <ActivityTimeline items={activityFeed} />

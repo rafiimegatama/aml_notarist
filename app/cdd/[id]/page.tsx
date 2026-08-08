@@ -18,6 +18,7 @@ import {
   Info,
   Printer,
   Clock,
+  Pencil,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
@@ -162,6 +163,13 @@ export default async function CddDetailPage({
             <Badge tone={customer.status === "COMPLETE" ? "success" : "warning"}>
               {customerStatusLabels[customer.status]}
             </Badge>
+            <Link
+              href={`/cdd/${customer.id}/edit`}
+              className="btn btn-secondary px-4 py-2 text-sm"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={2} />
+              Edit Data
+            </Link>
             <Link
               href={`/cdd/${customer.id}/risk-assessment`}
               className="btn btn-secondary px-4 py-2 text-sm"

@@ -6,10 +6,11 @@ import { logout } from "@/lib/actions/auth";
 
 /**
  * Tombol mengambang untuk mengunci layar manual sebelum menjauh dari PC
- * (data CDD sensitif, aplikasi lokal tanpa idle-timeout otomatis di luar
- * masa berlaku sesi 10 jam). Disembunyikan di bawah /lock — kalau pathname
- * sudah di situ, proxy.ts membuktikan sesi memang belum/tidak ada, jadi
- * tombol "kunci" di halaman yang sudah terkunci tidak relevan.
+ * (data CDD sensitif) — pelengkap IdleLockTimer (auto-lock 5 menit idle)
+ * untuk kunci instan tanpa menunggu timeout. Disembunyikan di bawah /lock —
+ * kalau pathname sudah di situ, proxy.ts membuktikan sesi memang belum/
+ * tidak ada, jadi tombol "kunci" di halaman yang sudah terkunci tidak
+ * relevan.
  *
  * Ctrl+Shift+L (bukan Ctrl+L) memicu form yang sama lewat requestSubmit() —
  * Ctrl+L sendiri TIDAK BISA dipakai: browser (Chrome/Edge/Firefox) mencegat

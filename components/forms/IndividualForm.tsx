@@ -9,9 +9,12 @@ import {
   type IndividualFormValues,
   type IndividualFormOutput,
 } from "@/lib/validations";
-import { createIndividualCustomer } from "@/lib/actions/customer";
+import { createIndividualCustomer, updateIndividualCustomer } from "@/lib/actions/customer";
 import type { DraftDocument } from "@/lib/actions/document";
-import type { IndividualPrefill } from "@/lib/actions/duplicateLookup";
+import { loadIndividualPrefill, type IndividualPrefill } from "@/lib/actions/duplicateLookup";
+import type { IndividualEditData } from "@/lib/actions/customerEdit";
+import { useDuplicateFieldMatch } from "@/lib/hooks/useDuplicateFieldMatch";
+import { DuplicateFieldBanner } from "@/components/forms/DuplicateFieldBanner";
 import {
   SectionCard,
   TextField,
@@ -89,13 +92,15 @@ const AUTOSAVE_KEY = "notary-aml:draft:individual";
 export function IndividualForm({
   ocrDraft,
   prefill,
+  editCustomer,
 }: {
   ocrDraft?: DraftDocument | null;
   prefill?: IndividualPrefill | null;
+  editCustomer?: { customerId: string; data: IndividualEditData } | null;
 }) {
   return (
     <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
-      <IndividualFormInner ocrDraft={ocrDraft} prefill={prefill} />
+      <IndividualFormInner ocrDraft={ocrDraft} prefill={prefill} editCustomer={editCustomer} />
     </OcrFieldProvider>
   );
 }
@@ -103,24 +108,35 @@ export function IndividualForm({
 function IndividualFormInner({
   ocrDraft,
   prefill,
+  editCustomer,
 }: {
   ocrDraft?: DraftDocument | null;
   prefill?: IndividualPrefill | null;
+  editCustomer?: { customerId: string; data: IndividualEditData } | null;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [showOcrGate, setShowOcrGate] = useState(false);
   const [bypassOcrGate, setBypassOcrGate] = useState(false);
   const ocrGate = useOcrUnverifiedPaths();
-  const prefilledDefaults: IndividualFormValues = prefill
+  const prefilledDefaults: IndividualFormValues = editCustomer
     ? {
-        individualDetail: { ...defaultValues.individualDetail, ...prefill.values.individualDetail },
+        individualDetail: { ...defaultValues.individualDetail, ...editCustomer.data.values.individualDetail },
         beneficialOwners:
-          prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
-            ? prefill.values.beneficialOwners
+          editCustomer.data.values.beneficialOwners && editCustomer.data.values.beneficialOwners.length > 0
+            ? editCustomer.data.values.beneficialOwners
             : defaultValues.beneficialOwners,
-        notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+        notaryService: { ...defaultValues.notaryService, ...editCustomer.data.values.notaryService },
       }
-    : defaultValues;
+    : prefill
+      ? {
+          individualDetail: { ...defaultValues.individualDetail, ...prefill.values.individualDetail },
+          beneficialOwners:
+            prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
+              ? prefill.values.beneficialOwners
+              : defaultValues.beneficialOwners,
+          notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+        }
+      : defaultValues;
   const {
     register,
     control,
@@ -143,11 +159,13 @@ function IndividualFormInner({
   // tertutup/refresh tidak sengaja — hanya ditawarkan untuk dipulihkan kalau
   // TIDAK ada ocrDraft/prefill aktif (dua sumber itu sudah jadi starting
   // point eksplisit dari aksi pengguna, draft lokal tidak boleh menimpanya).
+  // Dinonaktifkan total saat editCustomer aktif — data sudah tersimpan di
+  // DB, draft "CDD baru" tidak relevan dan tidak boleh ketimpa isian edit.
   const allValues = useWatch({ control });
-  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful);
+  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful && !editCustomer);
   const [draft, setDraft] = useState<{ savedAt: number; values: IndividualFormValues } | null>(null);
   useEffect(() => {
-    if (ocrDraft || prefill) return;
+    if (ocrDraft || prefill || editCustomer) return;
     void (async () => {
       setDraft(loadAutosaveDraft<IndividualFormValues>(AUTOSAVE_KEY));
     })();
@@ -167,10 +185,46 @@ function IndividualFormInner({
     name: "individualDetail.sumberPendapatan",
   });
 
+  // Auto-detect klien lama langsung dari field No. Identitas/NPWP yang
+  // sedang diketik — beda dari `prefill` (yang datang dari kotak pencarian
+  // terpisah di halaman "CDD Baru"), ini reaktif terhadap field form
+  // sendiri. Dimatikan total di mode edit (editCustomer) — mencari "klien
+  // lain" pakai NIK/NPWP milik record yang sedang diedit sendiri tidak
+  // pernah relevan.
+  const watchedNoIdentitas = useWatch({ control, name: "individualDetail.noIdentitas" });
+  const watchedNpwp = useWatch({ control, name: "individualDetail.npwp" });
+  const idMatch = useDuplicateFieldMatch(watchedNoIdentitas ?? "", "PERORANGAN", !editCustomer);
+  const npwpMatch = useDuplicateFieldMatch(watchedNpwp ?? "", "PERORANGAN", !editCustomer);
+  const duplicateCandidate = idMatch.candidate ?? npwpMatch.candidate;
+  const [applyingDuplicate, setApplyingDuplicate] = useState(false);
+  const [appliedSourceLabel, setAppliedSourceLabel] = useState<string | null>(null);
+
+  async function handleApplyDuplicate() {
+    if (!duplicateCandidate) return;
+    setApplyingDuplicate(true);
+    const found = await loadIndividualPrefill(duplicateCandidate.customerId);
+    if (found) {
+      reset({
+        individualDetail: { ...defaultValues.individualDetail, ...found.values.individualDetail },
+        beneficialOwners:
+          found.values.beneficialOwners && found.values.beneficialOwners.length > 0
+            ? found.values.beneficialOwners
+            : defaultValues.beneficialOwners,
+        notaryService: { ...defaultValues.notaryService, ...found.values.notaryService },
+      });
+      setAppliedSourceLabel(found.sourceLabel);
+    }
+    idMatch.dismiss();
+    npwpMatch.dismiss();
+    setApplyingDuplicate(false);
+  }
+
   const onSubmit = handleSubmit(async (values: IndividualFormOutput) => {
     setFormError(null);
     clearAutosaveDraft(AUTOSAVE_KEY);
-    const result = await createIndividualCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
+    const result = editCustomer
+      ? await updateIndividualCustomer(editCustomer.customerId, values)
+      : await createIndividualCustomer(values, ocrDraft?.id, prefill?.sourceLabel ?? appliedSourceLabel ?? undefined);
     if (!result.success) {
       setFormError(
         result.formError ?? "Periksa kembali isian yang bertanda merah."
@@ -235,6 +289,18 @@ function IndividualFormInner({
             yang mungkin sudah berubah sebelum menyimpan.
           </p>
         </div>
+      )}
+
+      {duplicateCandidate && (
+        <DuplicateFieldBanner
+          candidate={duplicateCandidate}
+          applying={applyingDuplicate}
+          onApply={handleApplyDuplicate}
+          onDismiss={() => {
+            idMatch.dismiss();
+            npwpMatch.dismiss();
+          }}
+        />
       )}
 
       {ocrDraft && <OcrAssistBanner rawText={ocrDraft.rawText} />}
@@ -489,7 +555,7 @@ function IndividualFormInner({
           disabled={isSubmitting}
           className="btn btn-primary px-5 py-2.5 text-sm shadow-sm"
         >
-          {isSubmitting ? "Menyimpan..." : "Simpan CDD Perorangan"}
+          {isSubmitting ? "Menyimpan..." : editCustomer ? "Simpan Perubahan" : "Simpan CDD Perorangan"}
         </button>
       </div>
     </form>

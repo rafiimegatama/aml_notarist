@@ -2,27 +2,15 @@
 
 import { prisma } from "@/lib/prisma";
 import { CustomerType } from "@/lib/generated/prisma/enums";
-import type { CustomerStatus, JenisIdentitas } from "@/lib/generated/prisma/enums";
+import type { CustomerStatus } from "@/lib/generated/prisma/enums";
 import { normalizePhone, normalizeIdValue } from "@/lib/dedup";
+import { toDateInputValue, formatShortDate, mapBeneficialOwner } from "@/lib/customerFormMapping";
 import type {
   IndividualFormValues,
   CorporateFormValues,
   LegalArrangementFormValues,
-  BeneficialOwnerFormValues,
   NotaryServiceFormValues,
 } from "@/lib/validations";
-
-function toDateInputValue(date: Date | null): string {
-  return date ? date.toISOString().slice(0, 10) : "";
-}
-
-function formatShortDate(date: Date): string {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
 
 // ------------------------------------------------------------------
 // FR-9 (evolved) — pencarian klien lama by No. HP/Telepon atau No.
@@ -343,34 +331,6 @@ export async function loadLegalArrangementPrefill(
       })),
       notaryService: mapNotaryService(customer.notaryService),
     },
-  };
-}
-
-function mapBeneficialOwner(bo: {
-  namaLengkap: string;
-  namaAlias: string | null;
-  jenisIdentitas: JenisIdentitas | null;
-  noIdentitas: string | null;
-  tempatLahir: string | null;
-  tanggalLahir: Date | null;
-  kewarganegaraan: string | null;
-  alamatTempatTinggal: string | null;
-  alamatNegaraAsal: string | null;
-  npwp: string | null;
-  hubunganDenganPenggunaJasa: string | null;
-}): BeneficialOwnerFormValues {
-  return {
-    namaLengkap: bo.namaLengkap,
-    namaAlias: bo.namaAlias ?? "",
-    jenisIdentitas: bo.jenisIdentitas ?? "",
-    noIdentitas: bo.noIdentitas ?? "",
-    tempatLahir: bo.tempatLahir ?? "",
-    tanggalLahir: toDateInputValue(bo.tanggalLahir),
-    kewarganegaraan: bo.kewarganegaraan ?? "",
-    alamatTempatTinggal: bo.alamatTempatTinggal ?? "",
-    alamatNegaraAsal: bo.alamatNegaraAsal ?? "",
-    npwp: bo.npwp ?? "",
-    hubunganDenganPenggunaJasa: bo.hubunganDenganPenggunaJasa ?? "",
   };
 }
 

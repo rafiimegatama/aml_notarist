@@ -10,9 +10,12 @@ import {
   type LegalArrangementFormValues,
   type LegalArrangementFormOutput,
 } from "@/lib/validations";
-import { createLegalArrangementCustomer } from "@/lib/actions/customer";
+import { createLegalArrangementCustomer, updateLegalArrangementCustomer } from "@/lib/actions/customer";
 import type { DraftDocument } from "@/lib/actions/document";
-import type { LegalArrangementPrefill } from "@/lib/actions/duplicateLookup";
+import { loadLegalArrangementPrefill, type LegalArrangementPrefill } from "@/lib/actions/duplicateLookup";
+import type { LegalArrangementEditData } from "@/lib/actions/customerEdit";
+import { useDuplicateFieldMatch } from "@/lib/hooks/useDuplicateFieldMatch";
+import { DuplicateFieldBanner } from "@/components/forms/DuplicateFieldBanner";
 import {
   SectionCard,
   TextField,
@@ -71,13 +74,15 @@ const AUTOSAVE_KEY = "notary-aml:draft:legal-arrangement";
 export function LegalArrangementForm({
   ocrDraft,
   prefill,
+  editCustomer,
 }: {
   ocrDraft?: DraftDocument | null;
   prefill?: LegalArrangementPrefill | null;
+  editCustomer?: { customerId: string; data: LegalArrangementEditData } | null;
 }) {
   return (
     <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
-      <LegalArrangementFormInner ocrDraft={ocrDraft} prefill={prefill} />
+      <LegalArrangementFormInner ocrDraft={ocrDraft} prefill={prefill} editCustomer={editCustomer} />
     </OcrFieldProvider>
   );
 }
@@ -85,31 +90,49 @@ export function LegalArrangementForm({
 function LegalArrangementFormInner({
   ocrDraft,
   prefill,
+  editCustomer,
 }: {
   ocrDraft?: DraftDocument | null;
   prefill?: LegalArrangementPrefill | null;
+  editCustomer?: { customerId: string; data: LegalArrangementEditData } | null;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [showOcrGate, setShowOcrGate] = useState(false);
   const [bypassOcrGate, setBypassOcrGate] = useState(false);
   const ocrGate = useOcrUnverifiedPaths();
-  const prefilledDefaults: LegalArrangementFormValues = prefill
+  const prefilledDefaults: LegalArrangementFormValues = editCustomer
     ? {
         legalArrangementDetail: {
           ...defaultValues.legalArrangementDetail,
-          ...prefill.values.legalArrangementDetail,
+          ...editCustomer.data.values.legalArrangementDetail,
         },
         beneficialOwners:
-          prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
-            ? prefill.values.beneficialOwners
+          editCustomer.data.values.beneficialOwners && editCustomer.data.values.beneficialOwners.length > 0
+            ? editCustomer.data.values.beneficialOwners
             : defaultValues.beneficialOwners,
         parties:
-          prefill.values.parties && prefill.values.parties.length > 0
-            ? prefill.values.parties
+          editCustomer.data.values.parties && editCustomer.data.values.parties.length > 0
+            ? editCustomer.data.values.parties
             : defaultValues.parties,
-        notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+        notaryService: { ...defaultValues.notaryService, ...editCustomer.data.values.notaryService },
       }
-    : defaultValues;
+    : prefill
+      ? {
+          legalArrangementDetail: {
+            ...defaultValues.legalArrangementDetail,
+            ...prefill.values.legalArrangementDetail,
+          },
+          beneficialOwners:
+            prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
+              ? prefill.values.beneficialOwners
+              : defaultValues.beneficialOwners,
+          parties:
+            prefill.values.parties && prefill.values.parties.length > 0
+              ? prefill.values.parties
+              : defaultValues.parties,
+          notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+        }
+      : defaultValues;
   const {
     register,
     control,
@@ -133,20 +156,59 @@ function LegalArrangementFormInner({
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
   const allValues = useWatch({ control });
-  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful);
+  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful && !editCustomer);
   const [draft, setDraft] = useState<{ savedAt: number; values: LegalArrangementFormValues } | null>(null);
   useEffect(() => {
-    if (ocrDraft || prefill) return;
+    if (ocrDraft || prefill || editCustomer) return;
     void (async () => {
       setDraft(loadAutosaveDraft<LegalArrangementFormValues>(AUTOSAVE_KEY));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-detect klien lama langsung dari field No. Identitas/NPWP yang
+  // sedang diketik — lihat catatan lengkap di IndividualForm.tsx.
+  const watchedNoIdentitas = useWatch({ control, name: "legalArrangementDetail.noIdentitas" });
+  const watchedNpwp = useWatch({ control, name: "legalArrangementDetail.npwp" });
+  const idMatch = useDuplicateFieldMatch(watchedNoIdentitas ?? "", "LEGAL_ARRANGEMENT", !editCustomer);
+  const npwpMatch = useDuplicateFieldMatch(watchedNpwp ?? "", "LEGAL_ARRANGEMENT", !editCustomer);
+  const duplicateCandidate = idMatch.candidate ?? npwpMatch.candidate;
+  const [applyingDuplicate, setApplyingDuplicate] = useState(false);
+  const [appliedSourceLabel, setAppliedSourceLabel] = useState<string | null>(null);
+
+  async function handleApplyDuplicate() {
+    if (!duplicateCandidate) return;
+    setApplyingDuplicate(true);
+    const found = await loadLegalArrangementPrefill(duplicateCandidate.customerId);
+    if (found) {
+      reset({
+        legalArrangementDetail: {
+          ...defaultValues.legalArrangementDetail,
+          ...found.values.legalArrangementDetail,
+        },
+        beneficialOwners:
+          found.values.beneficialOwners && found.values.beneficialOwners.length > 0
+            ? found.values.beneficialOwners
+            : defaultValues.beneficialOwners,
+        parties:
+          found.values.parties && found.values.parties.length > 0
+            ? found.values.parties
+            : defaultValues.parties,
+        notaryService: { ...defaultValues.notaryService, ...found.values.notaryService },
+      });
+      setAppliedSourceLabel(found.sourceLabel);
+    }
+    idMatch.dismiss();
+    npwpMatch.dismiss();
+    setApplyingDuplicate(false);
+  }
+
   const onSubmit = handleSubmit(async (values: LegalArrangementFormOutput) => {
     setFormError(null);
     clearAutosaveDraft(AUTOSAVE_KEY);
-    const result = await createLegalArrangementCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
+    const result = editCustomer
+      ? await updateLegalArrangementCustomer(editCustomer.customerId, values)
+      : await createLegalArrangementCustomer(values, ocrDraft?.id, prefill?.sourceLabel ?? appliedSourceLabel ?? undefined);
     if (!result.success) {
       setFormError(
         result.formError ?? "Periksa kembali isian yang bertanda merah."
@@ -208,6 +270,18 @@ function LegalArrangementFormInner({
             yang mungkin sudah berubah sebelum menyimpan.
           </p>
         </div>
+      )}
+
+      {duplicateCandidate && (
+        <DuplicateFieldBanner
+          candidate={duplicateCandidate}
+          applying={applyingDuplicate}
+          onApply={handleApplyDuplicate}
+          onDismiss={() => {
+            idMatch.dismiss();
+            npwpMatch.dismiss();
+          }}
+        />
       )}
 
       {ocrDraft && <OcrAssistBanner rawText={ocrDraft.rawText} />}
@@ -402,7 +476,7 @@ function LegalArrangementFormInner({
           disabled={isSubmitting}
           className="btn btn-primary px-5 py-2.5 text-sm shadow-sm"
         >
-          {isSubmitting ? "Menyimpan..." : "Simpan CDD Perikatan Lainnya"}
+          {isSubmitting ? "Menyimpan..." : editCustomer ? "Simpan Perubahan" : "Simpan CDD Perikatan Lainnya"}
         </button>
       </div>
     </form>

@@ -9,9 +9,12 @@ import {
   type CorporateFormValues,
   type CorporateFormOutput,
 } from "@/lib/validations";
-import { createCorporateCustomer } from "@/lib/actions/customer";
+import { createCorporateCustomer, updateCorporateCustomer } from "@/lib/actions/customer";
 import type { DraftDocument } from "@/lib/actions/document";
-import type { CorporatePrefill } from "@/lib/actions/duplicateLookup";
+import { loadCorporatePrefill, type CorporatePrefill } from "@/lib/actions/duplicateLookup";
+import type { CorporateEditData } from "@/lib/actions/customerEdit";
+import { useDuplicateFieldMatch } from "@/lib/hooks/useDuplicateFieldMatch";
+import { DuplicateFieldBanner } from "@/components/forms/DuplicateFieldBanner";
 import {
   SectionCard,
   TextField,
@@ -88,13 +91,15 @@ const AUTOSAVE_KEY = "notary-aml:draft:corporate";
 export function CorporateForm({
   ocrDraft,
   prefill,
+  editCustomer,
 }: {
   ocrDraft?: DraftDocument | null;
   prefill?: CorporatePrefill | null;
+  editCustomer?: { customerId: string; data: CorporateEditData } | null;
 }) {
   return (
     <OcrFieldProvider guesses={ocrDraft?.fieldGuesses ?? {}}>
-      <CorporateFormInner ocrDraft={ocrDraft} prefill={prefill} />
+      <CorporateFormInner ocrDraft={ocrDraft} prefill={prefill} editCustomer={editCustomer} />
     </OcrFieldProvider>
   );
 }
@@ -102,25 +107,37 @@ export function CorporateForm({
 function CorporateFormInner({
   ocrDraft,
   prefill,
+  editCustomer,
 }: {
   ocrDraft?: DraftDocument | null;
   prefill?: CorporatePrefill | null;
+  editCustomer?: { customerId: string; data: CorporateEditData } | null;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
   const [showOcrGate, setShowOcrGate] = useState(false);
   const [bypassOcrGate, setBypassOcrGate] = useState(false);
   const ocrGate = useOcrUnverifiedPaths();
-  const prefilledDefaults: CorporateFormValues = prefill
+  const prefilledDefaults: CorporateFormValues = editCustomer
     ? {
-        corporateDetail: { ...defaultValues.corporateDetail, ...prefill.values.corporateDetail },
+        corporateDetail: { ...defaultValues.corporateDetail, ...editCustomer.data.values.corporateDetail },
         beneficialOwners:
-          prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
-            ? prefill.values.beneficialOwners
+          editCustomer.data.values.beneficialOwners && editCustomer.data.values.beneficialOwners.length > 0
+            ? editCustomer.data.values.beneficialOwners
             : defaultValues.beneficialOwners,
-        powerOfAttorney: { ...defaultValues.powerOfAttorney, ...prefill.values.powerOfAttorney },
-        notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+        powerOfAttorney: { ...defaultValues.powerOfAttorney, ...editCustomer.data.values.powerOfAttorney },
+        notaryService: { ...defaultValues.notaryService, ...editCustomer.data.values.notaryService },
       }
-    : defaultValues;
+    : prefill
+      ? {
+          corporateDetail: { ...defaultValues.corporateDetail, ...prefill.values.corporateDetail },
+          beneficialOwners:
+            prefill.values.beneficialOwners && prefill.values.beneficialOwners.length > 0
+              ? prefill.values.beneficialOwners
+              : defaultValues.beneficialOwners,
+          powerOfAttorney: { ...defaultValues.powerOfAttorney, ...prefill.values.powerOfAttorney },
+          notaryService: { ...defaultValues.notaryService, ...prefill.values.notaryService },
+        }
+      : defaultValues;
   const {
     register,
     control,
@@ -140,21 +157,52 @@ function CorporateFormInner({
   useUnsavedChangesWarning(isDirty && !isSubmitSuccessful);
 
   const allValues = useWatch({ control });
-  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful);
+  useAutosaveDraft(AUTOSAVE_KEY, allValues, !isSubmitSuccessful && !editCustomer);
   const [draft, setDraft] = useState<{ savedAt: number; values: CorporateFormValues } | null>(null);
   useEffect(() => {
-    if (ocrDraft || prefill) return;
+    if (ocrDraft || prefill || editCustomer) return;
     void (async () => {
       setDraft(loadAutosaveDraft<CorporateFormValues>(AUTOSAVE_KEY));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-detect klien lama langsung dari field NPWP yang sedang diketik —
+  // lihat catatan lengkap di IndividualForm.tsx. Korporasi tidak punya
+  // field "No. Identitas" terpisah (hanya NPWP), jadi cuma satu watcher.
+  const watchedNpwp = useWatch({ control, name: "corporateDetail.npwp" });
+  const npwpMatch = useDuplicateFieldMatch(watchedNpwp ?? "", "KORPORASI", !editCustomer);
+  const duplicateCandidate = npwpMatch.candidate;
+  const [applyingDuplicate, setApplyingDuplicate] = useState(false);
+  const [appliedSourceLabel, setAppliedSourceLabel] = useState<string | null>(null);
+
+  async function handleApplyDuplicate() {
+    if (!duplicateCandidate) return;
+    setApplyingDuplicate(true);
+    const found = await loadCorporatePrefill(duplicateCandidate.customerId);
+    if (found) {
+      reset({
+        corporateDetail: { ...defaultValues.corporateDetail, ...found.values.corporateDetail },
+        beneficialOwners:
+          found.values.beneficialOwners && found.values.beneficialOwners.length > 0
+            ? found.values.beneficialOwners
+            : defaultValues.beneficialOwners,
+        powerOfAttorney: { ...defaultValues.powerOfAttorney, ...found.values.powerOfAttorney },
+        notaryService: { ...defaultValues.notaryService, ...found.values.notaryService },
+      });
+      setAppliedSourceLabel(found.sourceLabel);
+    }
+    npwpMatch.dismiss();
+    setApplyingDuplicate(false);
+  }
+
   const onSubmit = handleSubmit(async (values: CorporateFormOutput) => {
     setFormError(null);
     clearAutosaveDraft(AUTOSAVE_KEY);
-    const result = await createCorporateCustomer(values, ocrDraft?.id, prefill?.sourceLabel);
-    // Jika sukses, createCorporateCustomer memanggil redirect() dan tidak pernah sampai ke sini.
+    const result = editCustomer
+      ? await updateCorporateCustomer(editCustomer.customerId, values)
+      : await createCorporateCustomer(values, ocrDraft?.id, prefill?.sourceLabel ?? appliedSourceLabel ?? undefined);
+    // Jika sukses, action di atas memanggil redirect() dan tidak pernah sampai ke sini.
     if (!result.success) {
       setFormError(
         result.formError ?? "Periksa kembali isian yang bertanda merah."
@@ -216,6 +264,15 @@ function CorporateFormInner({
             yang mungkin sudah berubah sebelum menyimpan.
           </p>
         </div>
+      )}
+
+      {duplicateCandidate && (
+        <DuplicateFieldBanner
+          candidate={duplicateCandidate}
+          applying={applyingDuplicate}
+          onApply={handleApplyDuplicate}
+          onDismiss={() => npwpMatch.dismiss()}
+        />
       )}
 
       {ocrDraft && <OcrAssistBanner rawText={ocrDraft.rawText} />}
@@ -473,7 +530,7 @@ function CorporateFormInner({
           disabled={isSubmitting}
           className="btn btn-primary px-5 py-2.5 text-sm shadow-sm"
         >
-          {isSubmitting ? "Menyimpan..." : "Simpan CDD Korporasi"}
+          {isSubmitting ? "Menyimpan..." : editCustomer ? "Simpan Perubahan" : "Simpan CDD Korporasi"}
         </button>
       </div>
     </form>

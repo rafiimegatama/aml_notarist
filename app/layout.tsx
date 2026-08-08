@@ -6,6 +6,7 @@ import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { ToastProvider } from "@/components/ui/toast";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { SessionExpiryWarning } from "@/components/layout/SessionExpiryWarning";
+import { IdleLockTimer } from "@/components/layout/IdleLockTimer";
 import "./globals.css";
 
 const inter = Inter({
@@ -55,6 +56,7 @@ export default function RootLayout({
           <LockButton />
           <KeyboardShortcuts />
           <SessionExpiryWarning />
+          <IdleLockTimer />
         </ToastProvider>
       </body>
     </html>
