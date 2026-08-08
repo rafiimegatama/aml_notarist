@@ -14,6 +14,9 @@
 // diekstrak ke $HOME/ollama/{bin,lib}. Ini instalasi per-mesin (seperti PM2
 // sendiri), bukan bagian dari repo — kalau dijalankan di mesin lain, ulangi
 // langkah instalasi manual di SETUP.md sebelum PM2 bisa start proses ini.
+/* eslint-disable @typescript-eslint/no-require-imports -- PM2 loads this
+   config file via Node's require() directly; it stays CommonJS on purpose,
+   not ESM (see file header). */
 const os = require("os");
 const path = require("path");
 const OLLAMA_HOME = path.join(os.homedir(), "ollama");

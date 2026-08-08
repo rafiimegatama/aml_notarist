@@ -1,0 +1,35 @@
+name: CI
+
+# Phase 6 (aml_phase_2_brief.md) — this app deploys to a single local PC via
+# PM2 (see SETUP.md / ecosystem.config.js), not to the cloud, so this
+# workflow exists purely to catch regressions during development. It is NOT
+# a deploy gate and intentionally has no deploy/publish steps.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # lib/generated/prisma is gitignored (see .gitignore) and required by
+      # lib/status.ts, lib/auth-adjacent code, etc. — generate before
+      # lint/typecheck/test, same as a fresh local checkout would need.
+      - run: npx prisma generate
+
+      - run: npm run lint
+
+      - run: npx tsc --noEmit
+
+      - run: npm test
