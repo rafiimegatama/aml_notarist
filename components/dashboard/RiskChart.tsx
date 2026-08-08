@@ -22,9 +22,9 @@ const RANGE_OPTIONS = [
 // kategori "Critical" di mesin skoring yang sebenarnya, jadi sengaja tidak
 // ditambahkan di sini supaya visualisasi tetap merepresentasikan data asli.
 const SERIES: { key: keyof Omit<RiskTrendPoint, "date" | "label">; name: string; color: string }[] = [
-  { key: "rendah", name: "Rendah", color: "#16a34a" },
-  { key: "sedang", name: "Sedang", color: "#f59e0b" },
-  { key: "tinggi", name: "Tinggi", color: "#dc2626" },
+  { key: "rendah", name: "Rendah", color: "#32966A" },
+  { key: "sedang", name: "Sedang", color: "#C98A2E" },
+  { key: "tinggi", name: "Tinggi", color: "#B94A48" },
 ];
 
 export function RiskChart({ data }: { data: RiskTrendPoint[] }) {

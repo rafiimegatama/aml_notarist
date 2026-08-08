@@ -12,10 +12,10 @@ export interface RiskDistribution {
 }
 
 const SLICES: { key: keyof RiskDistribution; name: string; color: string }[] = [
-  { key: "tinggi", name: "Tinggi", color: "#dc2626" },
-  { key: "sedang", name: "Sedang", color: "#f59e0b" },
-  { key: "rendah", name: "Rendah", color: "#16a34a" },
-  { key: "belumDinilai", name: "Belum Dinilai", color: "#cbd5e1" },
+  { key: "tinggi", name: "Tinggi", color: "#B94A48" },
+  { key: "sedang", name: "Sedang", color: "#C98A2E" },
+  { key: "rendah", name: "Rendah", color: "#32966A" },
+  { key: "belumDinilai", name: "Belum Dinilai", color: "#CBD5E1" },
 ];
 
 export function RiskDonut({ distribution }: { distribution: RiskDistribution }) {
