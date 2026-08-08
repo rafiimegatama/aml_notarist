@@ -1,11 +1,11 @@
-# Graph Report - notary_aml  (2026-08-08)
+# Graph Report - notary_aml  (2026-08-07)
 
 ## Corpus Check
-- 302 files · ~140,743 words
+- 294 files · ~136,494 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2256 nodes · 3775 edges · 153 communities (144 shown, 9 thin omitted)
+- 2234 nodes · 3709 edges · 150 communities (140 shown, 10 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 9 edges (avg confidence: 0.77)
 - Token cost: 0 input · 0 output
 
@@ -15,18 +15,18 @@
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- page-header.tsx
-- retensi/page.tsx
+- duplicateLookup.ts
 - cdd/[id]/page.tsx
-- customer.ts
+- labels.ts
+- prisma.ts
 - validations.ts
 - BackupPanel.tsx
-- sheetsExport.ts
+- sheetsFullSync.ts
 - devDependencies
 - dependencies
 - compilerOptions
 - lib/auth.ts
-- prisma.ts
+- config.ts
 - refData.ts
 - cases/[id]/page.tsx
 - Data Referensi — Notary CDD & Risk Assessment WebApp
@@ -70,7 +70,7 @@
 - ESM and CommonJS Support
 - Constructor Options
 - Schema Changes
-- ltkm-export/route.ts
+- customerTypeLabels
 - Transactions
 - Workflow
 - Prisma Compute Framework Readiness
@@ -119,7 +119,7 @@
 - verify-cutover-checklist
 - Prisma 7 Client Instantiation
 - DashboardUtilityDial.tsx
-- ai-processing.ts
+- AIProcessingService
 - KnowledgeBasePanel.tsx
 - README.md
 - Strix Cloud API (managed, no local infra)
@@ -134,21 +134,21 @@
 - aml_notarist — Phase 2 Remediation: Claude Code Implementation Brief
 - scripts
 - actions/auth.ts
-- driveBackup.ts
+- [id]/route.ts
 - status.ts
 - Prisma Compute
 - dashboard.ts
 - strix-pentest/SKILL.md
 - DashboardCard.tsx
 - package.json
-- provider-factory.ts
-- LegalArrangementForm.tsx
+- AIProvider
+- start/route.ts
 - strix-ci-setup/SKILL.md
-- duplicateLookup.ts
+- CaseDecisionPanel.tsx
 - cases/page.tsx
 - tesseract.js
-- provider.ts
-- RiskAssessmentForm.tsx
+- ai-processing.ts
+- lucide-react
 - react-dom
 - @react-pdf/renderer
 - typescript
@@ -156,13 +156,10 @@
 - Fix Strix findings and verify
 - empty-state.tsx
 - storage.ts
-- customerEdit.ts
 - toast.tsx
-- sheetsFullSync.ts
-- lucide-react
 
 ## God Nodes (most connected - your core abstractions)
-1. `prisma` - 41 edges
+1. `prisma` - 39 edges
 2. `AiCallOptions` - 25 edges
 3. `AIProcessingService` - 22 edges
 4. `Troubleshooting Prisma Compute` - 20 edges
@@ -188,35 +185,35 @@
 ## Import Cycles
 - None detected.
 
-## Communities (153 total, 9 thin omitted)
+## Communities (150 total, 10 thin omitted)
 
-### Community 0 - "page-header.tsx"
-Cohesion: 0.14
-Nodes (18): metadata, NewCorporateCddPage(), metadata, options, metadata, NewLegalArrangementCddPage(), metadata, NewIndividualCddPage() (+10 more)
+### Community 0 - "duplicateLookup.ts"
+Cohesion: 0.10
+Nodes (34): metadata, EditCddPage(), metadata, NewCorporateCddPage(), metadata, NewLegalArrangementCddPage(), metadata, NewIndividualCddPage() (+26 more)
 
-### Community 1 - "retensi/page.tsx"
-Cohesion: 0.21
-Nodes (13): AdminRetensiPage(), metadata, CddDetailPage(), yesNo(), getActivityLog(), addYearsClamped(), getRetentionReviewDate(), isPastRetentionReviewDate() (+5 more)
+### Community 1 - "cdd/[id]/page.tsx"
+Cohesion: 0.15
+Nodes (17): AdminRetensiPage(), metadata, CddDetailPage(), RISK_TONE, yesNo(), ExportToSheetButton(), LtkmPanel(), MarkReviewedButton() (+9 more)
 
-### Community 2 - "cdd/[id]/page.tsx"
-Cohesion: 0.11
-Nodes (30): RISK_TONE, CompletionChecklist(), Row, jenisHighRiskCustomerOptions, jenisIdentitasOptions, penghasilanOptions, sumberKekayaanOptions, tujuanTransaksiOptions (+22 more)
+### Community 2 - "labels.ts"
+Cohesion: 0.07
+Nodes (37): metadata, HighRiskAdditionalInfoForm(), jenisHighRiskCustomerOptions, jenisIdentitasOptions, penghasilanOptions, sumberKekayaanOptions, tujuanTransaksiOptions, pepAsalNegaraOptions (+29 more)
 
-### Community 3 - "customer.ts"
+### Community 3 - "prisma.ts"
 Cohesion: 0.09
-Nodes (42): CaseDecisionPanel(), CHECKLIST_ITEMS, Outcome, STATUS_LABEL, STATUS_TONE, LtkmPanel(), MarkReviewedButton(), advanceCaseAfterEdd() (+34 more)
+Nodes (47): boolToYesNo(), RiskAssessmentPage(), RiskAssessmentForm(), advanceCaseAfterEdd(), CaseActionResult, CHECKLIST_KEYS, decideCase(), FINAL_OUTCOMES_REQUIRE_CHECKLIST (+39 more)
 
 ### Community 4 - "validations.ts"
 Cohesion: 0.06
-Nodes (29): beneficialOwnerSchema, corporateDetailSchema, HighRiskAdditionalInfoOutput, highRiskAdditionalInfoSchema, hubunganHukumPengurusValues, individualDetailSchema, jenisHighRiskCustomerValues, jenisIdentitasEddValues (+21 more)
+Nodes (30): beneficialOwnerSchema, corporateDetailSchema, hubunganHukumPengurusValues, individualDetailSchema, jenisHighRiskCustomerValues, jenisIdentitasEddValues, jenisIdentitasValues, jenisKelaminValues (+22 more)
 
 ### Community 5 - "BackupPanel.tsx"
-Cohesion: 0.22
-Nodes (8): BackupPanel(), formatDateTime(), ConfirmDialog(), ConfirmDialogProps, createBackup(), BackupMeta, buildBackupZip(), CreateBackupResult
+Cohesion: 0.32
+Nodes (7): BackupPanel(), formatDateTime(), createBackup(), BackupMeta, buildBackupZip(), CreateBackupResult, BACKUP_META_PATH
 
-### Community 6 - "sheetsExport.ts"
-Cohesion: 0.15
-Nodes (25): ExportToSheetButton(), exportCustomerToSheet(), ExportResult, HEADERS, LAST_COLUMN, rewriteTab(), syncAllDetailTabsToSheet(), appendRange() (+17 more)
+### Community 6 - "sheetsFullSync.ts"
+Cohesion: 0.11
+Nodes (38): SheetsFullSyncPanel(), TAB_LABELS, exportCustomerToSheet(), ExportResult, HEADERS, LAST_COLUMN, FullSyncResult, rewriteTab() (+30 more)
 
 ### Community 7 - "devDependencies"
 Cohesion: 0.07
@@ -231,20 +228,20 @@ Cohesion: 0.07
 Nodes (28): dom, dom.iterable, esnext, **/*.mts, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules (+20 more)
 
 ### Community 10 - "lib/auth.ts"
-Cohesion: 0.19
-Nodes (18): GET(), GET(), createOAuthState(), createPinResetToken(), getSessionSecret(), isValidOAuthState(), isValidSignedExpiring(), LockoutState (+10 more)
+Cohesion: 0.22
+Nodes (16): GET(), createPinResetToken(), getSessionSecret(), hashPin(), isValidOAuthState(), isValidSignedExpiring(), LOCKOUT_DURATION_MINUTES, LOCKOUT_THRESHOLD (+8 more)
 
-### Community 11 - "prisma.ts"
-Cohesion: 0.12
-Nodes (13): metadata, HighRiskAdditionalInfoForm(), adapter, globalForPrisma, prisma, HighRiskAdditionalInfoValues, businessSectorScores, countryScores (+5 more)
+### Community 11 - "config.ts"
+Cohesion: 0.27
+Nodes (12): POST(), AiProviderRuntimeSettings, defaultSettings(), getAiSettings(), getAiSettingsPublic(), mergeSettings(), resolveCloudApiKey(), StoredAiSettings (+4 more)
 
 ### Community 12 - "refData.ts"
-Cohesion: 0.20
-Nodes (15): metadata, AdminRefTable(), RefRow, TABLE_ICON, addRefScoreRow(), getDelegate(), isValidTableKey(), parseCategoryAndScore() (+7 more)
+Cohesion: 0.26
+Nodes (13): RefRow, TABLE_ICON, addRefScoreRow(), getDelegate(), isValidTableKey(), parseCategoryAndScore(), RefRowActionResult, RefScoreDelegate (+5 more)
 
 ### Community 13 - "cases/[id]/page.tsx"
-Cohesion: 0.16
-Nodes (16): AdminLtkmPage(), metadata, CaseDetailPage(), generateMetadata(), RISK_TONE, ActivityLogSection(), formatDateTime(), DetailItem() (+8 more)
+Cohesion: 0.17
+Nodes (15): AdminLtkmPage(), metadata, CaseDetailPage(), generateMetadata(), RISK_TONE, ActivityLogSection(), formatDateTime(), DetailItem() (+7 more)
 
 ### Community 14 - "Data Referensi — Notary CDD & Risk Assessment WebApp"
 Cohesion: 0.06
@@ -255,8 +252,8 @@ Cohesion: 0.36
 Nodes (3): Skeleton(), SkeletonCard(), SkeletonTable()
 
 ### Community 18 - "aiSettings.ts"
-Cohesion: 0.12
-Nodes (25): POST(), formatBytes(), OllamaModelManager(), PullProgress, deleteOllamaModelAction(), DeleteOllamaModelResult, listOllamaModelsAction(), ListOllamaModelsResult (+17 more)
+Cohesion: 0.11
+Nodes (22): AiProcessingSettingsPage(), metadata, AiSettingsPanel(), AiStatusWidget(), MODE_LABEL, PROVIDER_LABEL, StatusSnapshot, formatBytes() (+14 more)
 
 ### Community 20 - "next.config.ts"
 Cohesion: 0.50
@@ -275,8 +272,8 @@ Cohesion: 0.07
 Nodes (27): Accept self-signed certificates, After (v7), Available Adapters, Before (v6), Configuration, Connection Pool Configuration, Driver Adapters, Installation (+19 more)
 
 ### Community 27 - "fields.tsx"
-Cohesion: 0.21
-Nodes (10): describedBy(), ocrBorderClass(), RadioGroupField(), Registration, SectionCard(), TextAreaField(), TextField(), FormWithNotaryService (+2 more)
+Cohesion: 0.18
+Nodes (12): describedBy(), ocrBorderClass(), RadioGroupField(), Registration, SectionCard(), SelectField(), TextAreaField(), TextField() (+4 more)
 
 ### Community 28 - "Upgrade to Prisma ORM 7"
 Cohesion: 0.08
@@ -296,7 +293,7 @@ Nodes (23): 1. Background, 2. Goals, 2A. Business Sector Score Table (Tabel B), 
 
 ### Community 32 - "document.ts"
 Cohesion: 0.15
-Nodes (18): ALLOWED_MIME, uploadAndExtractDocument(), UploadOcrResult, computeWordOffsets(), CORPORATE_LABEL_MAP, escapeRegExp(), extractFieldGuesses(), FieldGuess (+10 more)
+Nodes (18): ALLOWED_MIME, DraftDocument, uploadAndExtractDocument(), UploadOcrResult, computeWordOffsets(), CORPORATE_LABEL_MAP, escapeRegExp(), extractFieldGuesses() (+10 more)
 
 ### Community 33 - "Raw Queries"
 Cohesion: 0.09
@@ -363,8 +360,8 @@ Cohesion: 0.11
 Nodes (17): 1. Install dotenv, 2. Import in prisma.config.ts, Application Code, Bun Users, CI/CD Considerations, Entry point, Environment Variables, Multiple .env Files (+9 more)
 
 ### Community 49 - "app/page.tsx"
-Cohesion: 0.15
-Nodes (15): DashboardPage(), firstOrUndefined(), missingSectionsLabel(), RISK_TONE, riskCategoryOptions, statusOptions, typeOptions, HeroBanner() (+7 more)
+Cohesion: 0.18
+Nodes (14): DashboardPage(), firstOrUndefined(), greetingForHour(), missingSectionsLabel(), RISK_TONE, riskCategoryOptions, statusOptions, typeOptions (+6 more)
 
 ### Community 50 - "prisma db pull"
 Cohesion: 0.12
@@ -398,9 +395,9 @@ Nodes (15): accelerateUrl (For Accelerate users), adapter (Required for the SQL 
 Cohesion: 0.12
 Nodes (15): 1. Provider name, 2. Output is required, 3. engineType changed, 4. moduleFormat is explicit when needed, After Schema Changes, Datasource Block, Example Output Paths, Generated Entrypoints (+7 more)
 
-### Community 58 - "ltkm-export/route.ts"
-Cohesion: 0.33
-Nodes (7): GET(), RFC-4180, buildLtkmCsv(), csvField(), FORMULA_TRIGGER_CHARS, LTKM_CSV_HEADER, LtkmExportRow
+### Community 58 - "customerTypeLabels"
+Cohesion: 0.14
+Nodes (14): GET(), metadata, options, DuplicateLookupPanel(), NEW_CDD_ROUTE, RFC-4180, DuplicateCandidate, customerStatusLabels (+6 more)
 
 ### Community 60 - "Transactions"
 Cohesion: 0.13
@@ -443,8 +440,8 @@ Cohesion: 0.15
 Nodes (14): Dropzone(), DropzoneProps, FileCard(), FileCardProps, UploadPreviewModal(), UploadPreviewProps, UploadProgress(), STATE_META (+6 more)
 
 ### Community 70 - "compliance.ts"
-Cohesion: 0.12
-Nodes (31): AiFindingRow, CaseAiPanel(), CONFIDENCE_TONE, DuplicateCheckRow, KIND_META, dismissAiFinding(), askComplianceQuestionAction(), checkMissingDocumentsAction() (+23 more)
+Cohesion: 0.11
+Nodes (33): AiFindingRow, CaseAiPanel(), CONFIDENCE_TONE, DuplicateCheckRow, KIND_META, dismissAiFinding(), askComplianceQuestionAction(), checkMissingDocumentsAction() (+25 more)
 
 ### Community 71 - "prisma migrate diff"
 Cohesion: 0.17
@@ -483,8 +480,8 @@ Cohesion: 0.18
 Nodes (10): api-basics, Base URL, Collection, Error codes by HTTP status, Error Responses, Pagination, Resource ID Prefixes, Response Envelope (+2 more)
 
 ### Community 80 - "layout.tsx"
-Cohesion: 0.10
-Nodes (17): geistMono, inter, metadata, ACTIVITY_EVENTS, IdleLockTimer(), KeyboardShortcuts(), SHORTCUTS, LockButton() (+9 more)
+Cohesion: 0.11
+Nodes (14): geistMono, inter, metadata, KeyboardShortcuts(), SHORTCUTS, LockButton(), formatRemaining(), SessionExpiryWarning() (+6 more)
 
 ### Community 81 - "prisma format"
 Cohesion: 0.20
@@ -512,7 +509,7 @@ Nodes (9): Adapter choices, Connection setup, console-and-connections, Console w
 
 ### Community 87 - "IndividualForm.tsx"
 Cohesion: 0.10
-Nodes (25): defaultValues, hubunganHukumOptions, jenisIdentitasOptions, DraftRecoveryBanner(), formatRelative(), DuplicateFieldBanner(), defaultValues, jenisIdentitasOptions (+17 more)
+Nodes (38): CorporateFormInner(), defaultValues, hubunganHukumOptions, jenisIdentitasOptions, DraftRecoveryBanner(), formatRelative(), defaultValues, IndividualFormInner() (+30 more)
 
 ### Community 88 - "prisma migrate status"
 Cohesion: 0.22
@@ -564,7 +561,7 @@ Nodes (7): auth, Creating a service token, OAuth 2.0 (for user-scoped access), S
 
 ### Community 100 - "ollama-provider.ts"
 Cohesion: 0.21
-Nodes (11): AiImageInput, ChatMessage, ClassificationResult, DocumentExtractionResult, IdentityExtractionResult, ModelPullProgress, RiskAssessmentSuggestion, asNumber() (+3 more)
+Nodes (10): ChatMessage, ClassificationResult, DocumentExtractionResult, IdentityExtractionResult, ModelPullProgress, RiskAssessmentSuggestion, asNumber(), asString() (+2 more)
 
 ### Community 101 - "Setup — Konfigurasi Lokal"
 Cohesion: 0.15
@@ -591,16 +588,16 @@ Cohesion: 0.29
 Nodes (6): Basic instantiation, Common mistakes, Key rules, Prisma 7 Client Instantiation, Required packages, Usage in application code
 
 ### Community 108 - "DashboardUtilityDial.tsx"
-Cohesion: 0.18
-Nodes (11): DashboardPendingTaskData, DashboardSystemHealthData, DashboardUtilityDial(), DIAL_ITEMS, PanelKey, PENDING_TASK_ICON, SYSTEM_HEALTH_ICON, SystemHealthStatus (+3 more)
-
-### Community 109 - "ai-processing.ts"
 Cohesion: 0.16
-Nodes (13): GET(), AiProviderError, AIProcessingService, modelForProvider(), NOTE: this service is intentionally NOT wired into the existing, runWithFailover(), sendChatMessage(), summarizeText() (+5 more)
+Nodes (12): DashboardPendingTaskData, DashboardSystemHealthData, DashboardUtilityDial(), DIAL_ITEMS, PanelKey, PENDING_TASK_ICON, SYSTEM_HEALTH_ICON, SystemHealthStatus (+4 more)
+
+### Community 109 - "AIProcessingService"
+Cohesion: 0.23
+Nodes (9): GET(), AIProcessingService, sendChatMessage(), summarizeText(), classifyDocumentType(), extractDocumentText(), extractIdentityFields(), suggestRiskCategory() (+1 more)
 
 ### Community 110 - "KnowledgeBasePanel.tsx"
-Cohesion: 0.18
-Nodes (15): KnowledgeBasePage(), metadata, KnowledgeBasePanel(), KnowledgeDocumentRow, SOURCE_LABEL, useToast(), addKnowledgeDocument(), AddKnowledgeDocumentResult (+7 more)
+Cohesion: 0.19
+Nodes (14): KnowledgeBasePage(), metadata, KnowledgeBasePanel(), KnowledgeDocumentRow, SOURCE_LABEL, addKnowledgeDocument(), AddKnowledgeDocumentResult, deleteKnowledgeDocument() (+6 more)
 
 ### Community 111 - "README.md"
 Cohesion: 0.50
@@ -612,15 +609,15 @@ Nodes (10): 1. Register the target as an asset, 2. Launch a scan, 3. Poll to com
 
 ### Community 114 - "AiCallOptions"
 Cohesion: 0.30
-Nodes (9): AiCallOptions, AiResult, asNumber(), asString(), estimateCostUsd(), extractJsonObject(), GeminiPart, GeminiProvider (+1 more)
+Nodes (10): AiCallOptions, AiImageInput, AiResult, asNumber(), asString(), estimateCostUsd(), extractJsonObject(), GeminiPart (+2 more)
 
 ### Community 115 - "heroSettings.ts"
 Cohesion: 0.18
 Nodes (16): AppearanceSettingsPage(), metadata, GET(), HeroBannerAdmin(), ALLOWED_MIME, DEFAULT_SETTINGS, deleteHeroImage(), getHeroBannerSettings() (+8 more)
 
 ### Community 116 - "reset/page.tsx"
-Cohesion: 0.36
-Nodes (6): metadata, ResetPinPage(), PinResetForm(), resetPinFormAction(), isValidPinResetToken(), PIN_RESET_COOKIE_NAME
+Cohesion: 0.43
+Nodes (5): metadata, ResetPinPage(), PinResetForm(), resetPinFormAction(), isValidPinResetToken()
 
 ### Community 117 - "ecosystem.config.js"
 Cohesion: 0.50
@@ -628,15 +625,15 @@ Nodes (3): OLLAMA_HOME, os, path
 
 ### Community 118 - "BeneficialOwnerArrayField.tsx"
 Cohesion: 0.13
-Nodes (16): BeneficialOwnerArrayField(), BeneficialOwnerRow(), emptyBeneficialOwner, FormWithBeneficialOwners, jenisIdentitasOptions, FullRow(), SelectField(), emptyParty (+8 more)
+Nodes (16): BeneficialOwnerArrayField(), BeneficialOwnerRow(), emptyBeneficialOwner, FormWithBeneficialOwners, jenisIdentitasOptions, FullRow(), emptyParty, FormWithParties (+8 more)
 
 ### Community 119 - "backup/page.tsx"
-Cohesion: 0.21
-Nodes (10): AdminBackupPage(), formatDateTime(), metadata, SheetsFullSyncPanel(), TAB_LABELS, getLastBackupInfo(), BackupChannelsStatus, getBackupChannelsStatus() (+2 more)
+Cohesion: 0.23
+Nodes (11): AdminBackupPage(), formatDateTime(), metadata, getLastBackupInfo(), BackupChannelsStatus, getBackupChannelsStatus(), backupDocumentToDrive(), getSystemHealth() (+3 more)
 
 ### Community 120 - "isValidSessionToken"
-Cohesion: 0.17
-Nodes (13): GET(), ERROR_MESSAGES, ForgotPinPage(), metadata, LockPage(), metadata, PinForm(), verifyPinFormAction() (+5 more)
+Cohesion: 0.22
+Nodes (10): GET(), LockPage(), metadata, PinForm(), verifyPinFormAction(), getSessionExpiryMs(), isValidSessionToken(), SESSION_COOKIE_NAME (+2 more)
 
 ### Community 121 - "aml_notarist — Phase 2 Remediation: Claude Code Implementation Brief"
 Cohesion: 0.14
@@ -647,16 +644,16 @@ Cohesion: 0.14
 Nodes (14): scripts, build, dev, dev:lan, down, lint, logs, restart (+6 more)
 
 ### Community 123 - "actions/auth.ts"
-Cohesion: 0.23
-Nodes (15): verifyPin(), VerifyPinResult, ResetPinResult, resetPinWithRecoveryToken(), createSessionToken(), getLockoutStatus(), hashPin(), LOCKOUT_DURATION_MINUTES (+7 more)
+Cohesion: 0.27
+Nodes (12): extendSession(), verifyPin(), VerifyPinResult, ResetPinResult, resetPinWithRecoveryToken(), createSessionToken(), getLockoutStatus(), recordFailedAttempt() (+4 more)
 
-### Community 124 - "driveBackup.ts"
-Cohesion: 0.31
-Nodes (8): GET(), backupDocumentToDrive(), decryptDocumentBuffer(), encryptDocumentBuffer(), getDocumentEncryptionKey(), DriveConfig, getDriveConfig(), uploadFileToDrive()
+### Community 124 - "[id]/route.ts"
+Cohesion: 0.57
+Nodes (4): GET(), decryptDocumentBuffer(), encryptDocumentBuffer(), getDocumentEncryptionKey()
 
 ### Community 125 - "status.ts"
-Cohesion: 0.22
-Nodes (8): archiveCddPdf(), computeCompletionBreakdown(), CustomerForStatus, deriveCompletionBreakdown(), getCompletionBreakdown(), STATUS_QUERY_INCLUDE, Overrides, PDF_ARCHIVE_DIR
+Cohesion: 0.20
+Nodes (9): CompletionChecklist(), Row, CompletionBreakdown, computeCompletionBreakdown(), CustomerForStatus, deriveCompletionBreakdown(), getCompletionBreakdown(), STATUS_QUERY_INCLUDE (+1 more)
 
 ### Community 126 - "Prisma Compute"
 Cohesion: 0.22
@@ -678,33 +675,25 @@ Nodes (4): DashboardCard(), DashboardCardProps, DashboardCardTrend, TONE_CLASS
 Cohesion: 0.50
 Nodes (3): name, private, version
 
-### Community 132 - "provider-factory.ts"
-Cohesion: 0.15
-Nodes (7): AIProvider, getProvider(), listAvailableProviders(), PROVIDER_REGISTRY, ProviderBuilder, ResolvedRoute, resolveRoute()
-
-### Community 133 - "LegalArrangementForm.tsx"
+### Community 133 - "start/route.ts"
 Cohesion: 0.24
-Nodes (16): CorporateFormInner(), IndividualFormInner(), defaultValues, jenisIdentitasOptions, LegalArrangementFormInner(), useOcrUnverifiedPaths(), AutosaveDraft, clearAutosaveDraft() (+8 more)
+Nodes (10): GET(), ERROR_MESSAGES, ForgotPinPage(), metadata, createOAuthState(), OAUTH_STATE_MAX_AGE_SECONDS, buildGoogleAuthUrl(), getGoogleOAuthConfig() (+2 more)
 
 ### Community 134 - "strix-ci-setup/SKILL.md"
 Cohesion: 0.29
 Nodes (6): GitHub Actions, Option A — Self-hosted OSS CLI in the runner, Option B — Managed platform (no runner infra), Optional: upload findings to GitHub code scanning, Other CI systems, Set up Strix in CI/CD
 
-### Community 135 - "duplicateLookup.ts"
-Cohesion: 0.18
-Nodes (13): DuplicateLookupPanel(), NEW_CDD_ROUTE, CorporatePrefill, DuplicateCandidate, findPotentialDuplicates(), IndividualPrefill, LegalArrangementPrefill, normalizeIdValue() (+5 more)
+### Community 135 - "CaseDecisionPanel.tsx"
+Cohesion: 0.24
+Nodes (9): CaseDecisionPanel(), CHECKLIST_ITEMS, Outcome, STATUS_LABEL, STATUS_TONE, ConfirmDialog(), ConfirmDialogProps, useToast() (+1 more)
 
 ### Community 136 - "cases/page.tsx"
-Cohesion: 0.17
-Nodes (13): CasesListPage(), firstOrUndefined(), metadata, STATUS_FILTERS, STATUS_LABEL, STATUS_TONE, SYSTEM_STATUS_META, SystemStatusCard() (+5 more)
+Cohesion: 0.19
+Nodes (12): CasesListPage(), firstOrUndefined(), metadata, STATUS_FILTERS, STATUS_LABEL, STATUS_TONE, SYSTEM_STATUS_META, SystemStatusItem (+4 more)
 
-### Community 138 - "provider.ts"
-Cohesion: 0.13
-Nodes (19): AiProcessingSettingsPage(), metadata, AiSettingsPanel(), CAPABILITY_LABEL, MODE_OPTIONS, AiStatusWidget(), MODE_LABEL, PROVIDER_LABEL (+11 more)
-
-### Community 139 - "RiskAssessmentForm.tsx"
+### Community 138 - "ai-processing.ts"
 Cohesion: 0.15
-Nodes (12): boolToYesNo(), RiskAssessmentPage(), pepAsalNegaraOptions, pepHubunganOptions, pepJabatanOptions, RefScoreOption, RISK_TONE, RiskAssessmentForm() (+4 more)
+Nodes (17): CAPABILITY_LABEL, MODE_OPTIONS, AiSettings, AiSettingsPublic, AiUsageSummary, AI_CAPABILITIES, AiCapability, AiMode (+9 more)
 
 ### Community 145 - "Strix scan scope — notary_aml"
 Cohesion: 0.29
@@ -715,44 +704,36 @@ Cohesion: 0.33
 Nodes (5): 1. Triage, 2. Fix, 3. Verify by re-running Strix, 4. Report, Fix Strix findings and verify
 
 ### Community 147 - "empty-state.tsx"
-Cohesion: 0.19
-Nodes (10): ActivityFeedItem, ActivityTimeline(), pickIcon(), RiskByTypeChart(), RiskByTypePoint, SERIES, RiskDistribution, RiskDonut() (+2 more)
+Cohesion: 0.27
+Nodes (7): ActivityFeedItem, ActivityTimeline(), pickIcon(), RiskDistribution, RiskDonut(), SLICES, EmptyState()
 
 ### Community 148 - "storage.ts"
-Cohesion: 0.26
-Nodes (6): register(), BACKUP_DIR, BACKUP_META_PATH, DB_PATH, HDD_SYNC_META_PATH, UPLOAD_DIR
-
-### Community 149 - "customerEdit.ts"
-Cohesion: 0.34
-Nodes (9): EditCddPage(), CorporateEditData, IndividualEditData, LegalArrangementEditData, loadCorporateForEdit(), loadIndividualForEdit(), loadLegalArrangementForEdit(), mapBeneficialOwner() (+1 more)
+Cohesion: 0.25
+Nodes (5): register(), BACKUP_DIR, DB_PATH, HDD_SYNC_META_PATH, UPLOAD_DIR
 
 ### Community 150 - "toast.tsx"
 Cohesion: 0.29
 Nodes (7): ToastContext, ToastContextValue, ToastInput, ToastItem, ToastProvider(), ToastVariant, VARIANT_META
 
-### Community 151 - "sheetsFullSync.ts"
-Cohesion: 0.29
-Nodes (11): ALL_DETAIL_TABS, TAB_ACTIVITY_LOG, TAB_BENEFICIAL_OWNERS, TAB_CDD_KORPORASI, TAB_CDD_PERIKATAN_LAINNYA, TAB_CDD_PERORANGAN, TAB_EDD_BERISIKO_TINGGI, TAB_KUASA_KORPORASI (+3 more)
-
 ## Knowledge Gaps
-- **1164 isolated node(s):** `metadata`, `metadata`, `metadata`, `metadata`, `metadata` (+1159 more)
+- **1160 isolated node(s):** `metadata`, `metadata`, `metadata`, `metadata`, `metadata` (+1155 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `prisma` connect `prisma.ts` to `retensi/page.tsx`, `cdd/[id]/page.tsx`, `customer.ts`, `sheetsExport.ts`, `duplicateLookup.ts`, `provider.ts`, `RiskAssessmentForm.tsx`, `refData.ts`, `cases/[id]/page.tsx`, `aiSettings.ts`, `customerEdit.ts`, `sheetsFullSync.ts`, `document.ts`, `app/page.tsx`, `ltkm-export/route.ts`, `compliance.ts`, `KnowledgeBasePanel.tsx`, `heroSettings.ts`, `actions/auth.ts`, `driveBackup.ts`, `status.ts`, `dashboard.ts`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
-- **Why does `Badge()` connect `cases/page.tsx` to `retensi/page.tsx`, `cdd/[id]/page.tsx`, `customer.ts`, `compliance.ts`, `provider.ts`, `prisma.ts`, `refData.ts`, `cases/[id]/page.tsx`, `KnowledgeBasePanel.tsx`, `DashboardUtilityDial.tsx`, `RiskAssessmentForm.tsx`, `app/page.tsx`, `aiSettings.ts`, `backup/page.tsx`?**
+- **Why does `prisma` connect `prisma.ts` to `duplicateLookup.ts`, `cdd/[id]/page.tsx`, `labels.ts`, `sheetsFullSync.ts`, `ai-processing.ts`, `config.ts`, `refData.ts`, `cases/[id]/page.tsx`, `document.ts`, `app/page.tsx`, `customerTypeLabels`, `compliance.ts`, `KnowledgeBasePanel.tsx`, `heroSettings.ts`, `backup/page.tsx`, `actions/auth.ts`, `[id]/route.ts`, `status.ts`, `dashboard.ts`?**
+  _High betweenness centrality (0.037) - this node is a cross-community bridge._
+- **Why does `AIProvider` connect `AIProvider` to `ai-processing.ts`, `ollama-provider.ts`, `AiCallOptions`?**
   _High betweenness centrality (0.006) - this node is a cross-community bridge._
-- **Why does `customerTypeLabels` connect `cases/[id]/page.tsx` to `retensi/page.tsx`, `cdd/[id]/page.tsx`, `ScanUploadPanel.tsx`, `sheetsExport.ts`, `duplicateLookup.ts`, `cases/page.tsx`, `prisma.ts`, `app/page.tsx`, `ltkm-export/route.ts`, `dashboard.ts`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
+- **Why does `AIProcessingService` connect `AIProcessingService` to `ai-processing.ts`, `backup/page.tsx`, `compliance.ts`, `dashboard.ts`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **What connects `metadata`, `metadata`, `metadata` to the rest of the system?**
-  _1164 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `page-header.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.14130434782608695 - nodes in this community are weakly interconnected._
-- **Should `cdd/[id]/page.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.10796221322537113 - nodes in this community are weakly interconnected._
-- **Should `customer.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.0925589836660617 - nodes in this community are weakly interconnected._
+  _1160 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `duplicateLookup.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.09990749306197964 - nodes in this community are weakly interconnected._
+- **Should `labels.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.06826241134751773 - nodes in this community are weakly interconnected._
+- **Should `prisma.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.08755760368663594 - nodes in this community are weakly interconnected._

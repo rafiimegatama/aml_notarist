@@ -1,7 +1,7 @@
 # Graph Report - notary_aml  (2026-08-08)
 
 ## Corpus Check
-- 302 files · ~140,743 words
+- 302 files · ~139,978 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -159,7 +159,7 @@
 - customerEdit.ts
 - toast.tsx
 - sheetsFullSync.ts
-- lucide-react
+- react
 
 ## God Nodes (most connected - your core abstractions)
 1. `prisma` - 41 edges
@@ -211,8 +211,8 @@ Cohesion: 0.06
 Nodes (29): beneficialOwnerSchema, corporateDetailSchema, HighRiskAdditionalInfoOutput, highRiskAdditionalInfoSchema, hubunganHukumPengurusValues, individualDetailSchema, jenisHighRiskCustomerValues, jenisIdentitasEddValues (+21 more)
 
 ### Community 5 - "BackupPanel.tsx"
-Cohesion: 0.22
-Nodes (8): BackupPanel(), formatDateTime(), ConfirmDialog(), ConfirmDialogProps, createBackup(), BackupMeta, buildBackupZip(), CreateBackupResult
+Cohesion: 0.47
+Nodes (4): BackupPanel(), formatDateTime(), ConfirmDialog(), ConfirmDialogProps
 
 ### Community 6 - "sheetsExport.ts"
 Cohesion: 0.15
@@ -224,7 +224,7 @@ Nodes (29): dotenv, eslint, eslint-config-next, devDependencies, dotenv, eslint,
 
 ### Community 8 - "dependencies"
 Cohesion: 0.07
-Nodes (27): archiver, better-sqlite3, framer-motion, google-auth-library, @hookform/resolvers, next, dependencies, archiver (+19 more)
+Nodes (27): archiver, better-sqlite3, framer-motion, google-auth-library, @hookform/resolvers, lucide-react, next, dependencies (+19 more)
 
 ### Community 9 - "compilerOptions"
 Cohesion: 0.07
@@ -719,8 +719,8 @@ Cohesion: 0.19
 Nodes (10): ActivityFeedItem, ActivityTimeline(), pickIcon(), RiskByTypeChart(), RiskByTypePoint, SERIES, RiskDistribution, RiskDonut() (+2 more)
 
 ### Community 148 - "storage.ts"
-Cohesion: 0.26
-Nodes (6): register(), BACKUP_DIR, BACKUP_META_PATH, DB_PATH, HDD_SYNC_META_PATH, UPLOAD_DIR
+Cohesion: 0.18
+Nodes (10): register(), createBackup(), BackupMeta, buildBackupZip(), CreateBackupResult, BACKUP_DIR, BACKUP_META_PATH, DB_PATH (+2 more)
 
 ### Community 149 - "customerEdit.ts"
 Cohesion: 0.34

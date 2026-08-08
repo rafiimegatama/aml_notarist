@@ -95,8 +95,8 @@
     "semantic_hash": ""
   },
   "app/layout.tsx": {
-    "mtime": 1786145767.2975483,
-    "ast_hash": "f8c9468f944d6d521221dc1eb509c290",
+    "mtime": 1786056926.6337428,
+    "ast_hash": "a298aeef60b6d5c1aea0c93eb984f66b",
     "semantic_hash": ""
   },
   "app/loading.tsx": {
@@ -110,8 +110,8 @@
     "semantic_hash": ""
   },
   "app/page.tsx": {
-    "mtime": 1786145331.3424633,
-    "ast_hash": "fb40dc56d33502c66a85bc9921a08c34",
+    "mtime": 1786062074.4057188,
+    "ast_hash": "bcf0fdc59d288c7fa26800e705d634ba",
     "semantic_hash": ""
   },
   "components/admin/AdminRefTable.tsx": {
@@ -165,8 +165,8 @@
     "semantic_hash": ""
   },
   "components/forms/CorporateForm.tsx": {
-    "mtime": 1786122063.363866,
-    "ast_hash": "2d6abffa7435a4ec8d021fcde38498bf",
+    "mtime": 1786120459.0144799,
+    "ast_hash": "351b2bf772adf8b6d0bc75065412d379",
     "semantic_hash": ""
   },
   "components/forms/HighRiskAdditionalInfoForm.tsx": {
@@ -175,13 +175,13 @@
     "semantic_hash": ""
   },
   "components/forms/IndividualForm.tsx": {
-    "mtime": 1786122009.6690607,
-    "ast_hash": "1a35f7ef2490ac520726a747669055ba",
+    "mtime": 1786120455.3324869,
+    "ast_hash": "47ef3986f3ab1e75409147031d81a5cc",
     "semantic_hash": ""
   },
   "components/forms/LegalArrangementForm.tsx": {
-    "mtime": 1786122099.5873144,
-    "ast_hash": "910292327bdb14ff64a34385c434d963",
+    "mtime": 1786120467.2510645,
+    "ast_hash": "e3e5631f8f2da7071cc270a7c24d107b",
     "semantic_hash": ""
   },
   "components/forms/LegalArrangementPartyArrayField.tsx": {
@@ -560,8 +560,8 @@
     "semantic_hash": ""
   },
   "components/layout/LockButton.tsx": {
-    "mtime": 1786145778.7698524,
-    "ast_hash": "87714538756015f00c3e15eaaba2ee72",
+    "mtime": 1786031187.3495033,
+    "ast_hash": "4552cd829af715d922975da78926f84c",
     "semantic_hash": ""
   },
   "lib/actions/pinRecovery.ts": {
@@ -1065,8 +1065,8 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1786146186.69008,
-    "ast_hash": "a4e2e743f4ab41d2dad8245dff99cf87",
+    "mtime": 1786119480.478701,
+    "ast_hash": "b0d2e959a06ce0572c2ed345a56de5e3",
     "semantic_hash": ""
   },
   "components/layout/Sidebar.tsx": {
@@ -1355,8 +1355,8 @@
     "semantic_hash": ""
   },
   "lib/dashboard.ts": {
-    "mtime": 1786122261.3141105,
-    "ast_hash": "0069c8d71c2728240cb5a3c9ea4cc8e9",
+    "mtime": 1786060501.2050006,
+    "ast_hash": "bf7ce1ec4d0d034cf05a1b69565a872c",
     "semantic_hash": ""
   },
   "lib/documentEncryption.ts": {
@@ -1502,46 +1502,6 @@
   "lib/customerFormMapping.ts": {
     "mtime": 1786120587.6045623,
     "ast_hash": "27246fe00a6afcfb9b7024bcb48f7b75",
-    "semantic_hash": ""
-  },
-  "components/dashboard/RiskByTypeChart.tsx": {
-    "mtime": 1786122275.281976,
-    "ast_hash": "fed8263411ddd5dfe37072e072ded45c",
-    "semantic_hash": ""
-  },
-  "components/forms/DuplicateFieldBanner.tsx": {
-    "mtime": 1786121942.0328324,
-    "ast_hash": "e4586f47487fd72364155cfcf13a1e2b",
-    "semantic_hash": ""
-  },
-  "components/layout/IdleLockTimer.tsx": {
-    "mtime": 1786145752.1253095,
-    "ast_hash": "48ea6750765f76c9b97021a417f5cb69",
-    "semantic_hash": ""
-  },
-  "lib/greeting.test.ts": {
-    "mtime": 1786145342.5114238,
-    "ast_hash": "d140c46912d12b91d754a8a34ed23000",
-    "semantic_hash": ""
-  },
-  "lib/greeting.ts": {
-    "mtime": 1786145317.9848962,
-    "ast_hash": "2d390d12a40b1d4e0d22a03a76e63539",
-    "semantic_hash": ""
-  },
-  "lib/hooks/useDuplicateFieldMatch.ts": {
-    "mtime": 1786122176.004133,
-    "ast_hash": "21eec0136af84029e89aeb4ee36f0cae",
-    "semantic_hash": ""
-  },
-  "scripts/remove-dummy-dashboard-data.ts": {
-    "mtime": 1786145477.1378317,
-    "ast_hash": "fb36a567efdc52e4d9aa9c349b12583d",
-    "semantic_hash": ""
-  },
-  "scripts/seed-dummy-dashboard-data.ts": {
-    "mtime": 1786122493.41262,
-    "ast_hash": "f82fcd082c356f7800667bffc0b7420a",
     "semantic_hash": ""
   }
 }

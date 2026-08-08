@@ -4774,8 +4774,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_actions_backup_test",
-      "community": 5,
-      "community_name": "BackupPanel.tsx",
+      "community": 148,
+      "community_name": "storage.ts",
       "norm_label": "backup.test.ts"
     },
     {
@@ -4786,8 +4786,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "lib_actions_backup_test_setupfixture",
-      "community": 5,
-      "community_name": "BackupPanel.tsx",
+      "community": 148,
+      "community_name": "storage.ts",
       "norm_label": "setupfixture()"
     },
     {
@@ -4797,8 +4797,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_actions_backup",
-      "community": 5,
-      "community_name": "BackupPanel.tsx",
+      "community": 148,
+      "community_name": "storage.ts",
       "norm_label": "backup.ts"
     },
     {
@@ -4809,8 +4809,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "lib_actions_backup_createbackup",
-      "community": 5,
-      "community_name": "BackupPanel.tsx",
+      "community": 148,
+      "community_name": "storage.ts",
       "norm_label": "createbackup()"
     },
     {
@@ -8174,8 +8174,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "lib_backuparchive_backupmeta",
-      "community": 5,
-      "community_name": "BackupPanel.tsx",
+      "community": 148,
+      "community_name": "storage.ts",
       "norm_label": "backupmeta"
     },
     {
@@ -8187,8 +8187,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "lib_backuparchive_createbackupresult",
-      "community": 5,
-      "community_name": "BackupPanel.tsx",
+      "community": 148,
+      "community_name": "storage.ts",
       "norm_label": "createbackupresult"
     },
     {
@@ -8199,8 +8199,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "lib_backuparchive_buildbackupzip",
-      "community": 5,
-      "community_name": "BackupPanel.tsx",
+      "community": 148,
+      "community_name": "storage.ts",
       "norm_label": "buildbackupzip()"
     },
     {
@@ -11376,8 +11376,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "package_dependencies_lucide_react",
-      "community": 152,
-      "community_name": "lucide-react",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "lucide-react"
     },
     {
@@ -11387,8 +11387,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "lucide_react",
-      "community": 152,
-      "community_name": "lucide-react",
+      "community": 8,
+      "community_name": "dependencies",
       "norm_label": "lucide-react"
     },
     {
@@ -11442,8 +11442,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "package_dependencies_react",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 152,
+      "community_name": "react",
       "norm_label": "react"
     },
     {
@@ -11453,8 +11453,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "react",
-      "community": 8,
-      "community_name": "dependencies",
+      "community": 152,
+      "community_name": "react",
       "norm_label": "react"
     },
     {
@@ -24340,7 +24340,7 @@
       "label": "graphify",
       "file_type": "document",
       "source_file": "CLAUDE.md",
-      "source_location": "L52",
+      "source_location": "L51",
       "_origin": "ast",
       "id": "claude_graphify",
       "community": 96,
