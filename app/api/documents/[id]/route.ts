@@ -1,18 +1,27 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { UPLOAD_DIR } from "@/lib/storage";
 import { decryptDocumentBuffer } from "@/lib/documentEncryption";
+import { authorizeDocumentAccess, AuthorizationError } from "@/lib/authorization";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const doc = await prisma.customerDocument.findUnique({ where: { id } });
-  if (!doc) {
-    return new NextResponse("Dokumen tidak ditemukan.", { status: 404 });
+
+  // AUTHENTICATE -> AUTHORIZE OBJECT happens fully inside
+  // authorizeDocumentAccess() BEFORE any file read/decrypt below — an
+  // unauthorized/unauthenticated request never reaches decryptDocumentBuffer.
+  let doc;
+  try {
+    doc = await authorizeDocumentAccess(id);
+  } catch (err) {
+    if (err instanceof AuthorizationError) {
+      return new NextResponse(err.message, { status: err.status });
+    }
+    throw err;
   }
 
   // doc.filePath selalu nama file UUID buatan server (lihat

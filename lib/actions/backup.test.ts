@@ -1,10 +1,39 @@
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import unzipper from "unzipper";
-import { buildBackupZip, verifyBackupChecksum, type BackupMeta } from "@/lib/backupArchive";
+import { ZipArchive } from "archiver";
+import { buildBackupZip, verifyBackupChecksum, verifyBackupRestore, type BackupMeta } from "@/lib/backupArchive";
+import { DB_PATH, UPLOAD_DIR } from "@/lib/storage";
+
+/**
+ * Partial mock of node:fs/promises — delegates every call to the REAL
+ * implementation (via importOriginal), just wraps writeFile/rename/unlink
+ * in a vi.fn() so BACKUP-004 below can inspect call arguments. Built-in
+ * Node modules have a frozen ESM namespace, so vi.spyOn() on an already-
+ * resolved `await import("node:fs/promises")` throws ("Module namespace is
+ * not configurable") — vi.mock's factory replaces the module at resolution
+ * time instead, which does not hit that limitation. This mock is a no-op
+ * behaviorally for every OTHER test in this file (all real I/O still runs).
+ */
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, writeFile: vi.fn(actual.writeFile), rename: vi.fn(actual.rename), unlink: vi.fn(actual.unlink) };
+});
+import { encryptDocumentBuffer, encryptJson, encryptString } from "@/lib/documentEncryption";
+
+// Minimal valid 1x1 transparent PNG — real magic bytes + real (tiny) IDAT
+// stream, not a mock, so matchesFileSignature()/decryptDocumentBuffer() in
+// verifyBackupRestore exercise the actual code path.
+const TEST_PNG = Buffer.from(
+  "89504e470d0a1a0a0000000d4948445200000001000000010806000000" +
+    "1f15c4890000000d4944415478da62606060600000000500015ab38a5f" +
+    "0000000049454e44ae426082",
+  "hex"
+);
 
 /**
  * FR-1.1 (Phase 4) — verifies the real zip-building logic end-to-end against
@@ -137,5 +166,152 @@ describe("buildBackupZip — zip integrity", () => {
     // Missing file
     const missing = await verifyBackupChecksum("/nonexistent.zip", meta.sha256);
     expect(missing.valid).toBe(false);
+  });
+});
+
+/**
+ * BACKUP-001..004 (security hardening pass) — verifyBackupRestore() actually
+ * extracts+validates a backup instead of just re-hashing the zip. Uses a
+ * COPY of the real prisma/dev.db (schema-correct SQLite file, read once via
+ * plain file copy — never opened/written by anything other than a throwaway
+ * temp Prisma client pointed at the copy) so the temp DB has the real
+ * CustomerDocument schema without needing to run migrations from scratch.
+ * The original dev.db is only ever read, never written; the fixture row
+ * created below lives exclusively in the temp copy and is destroyed with
+ * the whole temp directory in afterEach. storage/uploads/ (real) is never
+ * touched — a separate temp uploads dir is used throughout.
+ */
+describe("verifyBackupRestore — restore verification actually opens the archive", () => {
+  let workDir: string | null = null;
+
+  afterEach(async () => {
+    if (workDir) await rm(workDir, { recursive: true, force: true });
+    workDir = null;
+  });
+
+  async function buildFixtureBackup() {
+    workDir = await mkdtemp(path.join(tmpdir(), "notary-restore-test-"));
+    const dbPath = path.join(workDir, "dev.db");
+    const uploadDir = path.join(workDir, "uploads");
+    const backupDir = path.join(workDir, "backups");
+    await mkdir(uploadDir, { recursive: true });
+    await copyFile(DB_PATH, dbPath);
+
+    const { PrismaClient } = await import("@/lib/generated/prisma/client");
+    const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
+    const tempPrisma = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url: `file:${dbPath}` }) });
+    const storedName = `${randomUUID()}.png`;
+    const doc = await tempPrisma.customerDocument.create({
+      data: {
+        formType: "PERORANGAN",
+        fileName: "test.png",
+        filePath: storedName,
+        mimeType: "image/png",
+        ocrRawText: encryptString("hasil OCR uji verifikasi restore"),
+        fieldGuesses: encryptJson({ nama: "Test Restore" }),
+      },
+    });
+    await tempPrisma.$disconnect();
+    await writeFile(path.join(uploadDir, storedName), encryptDocumentBuffer(TEST_PNG));
+
+    const result = await buildBackupZip({ dbPath, uploadDir, backupDir });
+    if (!result.success) throw new Error("fixture backup build failed: " + result.error);
+    return { workDir, uploadDir, zipPath: path.join(backupDir, result.fileName), docId: doc.id };
+  }
+
+  it("BACKUP-001: a valid backup verifies (VERIFIED, all checks pass, sample document decrypts)", async () => {
+    const { zipPath } = await buildFixtureBackup();
+    const result = await verifyBackupRestore(zipPath);
+
+    expect(result.status).toBe("VERIFIED");
+    expect(result.checks.every((c) => c.passed)).toBe(true);
+    const names = result.checks.map((c) => c.name);
+    expect(names).toContain("SQLITE_INTEGRITY_CHECK");
+    expect(names).toContain("PRISMA_TABLE_READ");
+    expect(names).toContain("ENCRYPTED_FILE_DECRYPT");
+    expect(names).toContain("OCR_FIELD_DECRYPT");
+  });
+
+  it("BACKUP-002: a corrupted zip fails verification (FAILED, extract step reported)", async () => {
+    const { zipPath } = await buildFixtureBackup();
+    const raw = await readFile(zipPath);
+    // Corrupt bytes near the end (central directory) — reliably breaks
+    // unzipper's ability to open the archive at all, unlike corrupting a
+    // byte inside file content (which might just corrupt that one entry).
+    const tampered = Buffer.from(raw);
+    for (let i = tampered.length - 20; i < tampered.length; i++) tampered[i] ^= 0xff;
+    const corruptPath = zipPath + ".corrupt";
+    await writeFile(corruptPath, tampered);
+
+    const result = await verifyBackupRestore(corruptPath);
+    expect(result.status).toBe("FAILED");
+    expect(result.checks.some((c) => c.name === "EXTRACT_ARCHIVE" && !c.passed)).toBe(true);
+  });
+
+  it("BACKUP-003: a backup whose manifest disagrees with actual file content fails verification", async () => {
+    const { workDir: dir, zipPath } = await buildFixtureBackup();
+
+    // Restore the valid zip to a scratch dir, corrupt the uploaded file's
+    // bytes on disk, then re-zip WITHOUT touching manifest.json — this
+    // reproduces "backup says X, disk has Y" (tamper/bit-rot/incomplete
+    // copy), which FILE_EXISTENCE_AND_CHECKSUM exists to catch.
+    const extractDir = path.join(dir!, "extract-for-corruption");
+    const directory = await unzipper.Open.file(zipPath);
+    await directory.extract({ path: extractDir, concurrency: 4 });
+    const uploadedFiles = await import("node:fs/promises").then((fs) => fs.readdir(path.join(extractDir, "uploads")));
+    const targetFile = path.join(extractDir, "uploads", uploadedFiles[0]);
+    const original = await readFile(targetFile);
+    const corrupted = Buffer.from(original);
+    corrupted[0] ^= 0xff;
+    await writeFile(targetFile, corrupted);
+
+    const corruptZipPath = path.join(dir!, "corrupt-manifest-mismatch.zip");
+    await new Promise<void>((resolve, reject) => {
+      const output = createWriteStream(corruptZipPath);
+      const archive = new ZipArchive({ zlib: { level: 9 } });
+      output.on("close", () => resolve());
+      output.on("error", reject);
+      archive.on("error", reject);
+      archive.pipe(output);
+      archive.file(path.join(extractDir, "dev.db"), { name: "dev.db" });
+      archive.file(path.join(extractDir, "manifest.json"), { name: "manifest.json" });
+      archive.directory(path.join(extractDir, "uploads"), "uploads");
+      archive.finalize();
+    });
+
+    const result = await verifyBackupRestore(corruptZipPath);
+    expect(result.status).toBe("FAILED");
+    expect(result.checks.some((c) => c.name === "FILE_EXISTENCE_AND_CHECKSUM" && !c.passed)).toBe(true);
+  });
+
+  it("BACKUP-004: verification never touches the real database/upload paths (isolated temp dirs only)", async () => {
+    // NOTE: this does NOT diff DB_PATH's raw bytes before/after — other test
+    // files in this suite legitimately create/delete real rows in the same
+    // prisma/dev.db in parallel (customerEdit.test.ts, authorization.test.ts,
+    // encryptionMigration.test.ts), so a byte-snapshot comparison here would
+    // spuriously fail on THEIR writes, not ours. Instead this asserts the
+    // real invariant directly against the module-level mocked writeFile/
+    // rename/unlink (see vi.mock("node:fs/promises") above — delegates to
+    // the real implementation, just makes calls inspectable): no write call
+    // made during the whole fixture+verify flow ever targets DB_PATH or
+    // UPLOAD_DIR.
+    const fsPromises = await import("node:fs/promises");
+    const writeFileMock = vi.mocked(fsPromises.writeFile);
+    const renameMock = vi.mocked(fsPromises.rename);
+    const unlinkMock = vi.mocked(fsPromises.unlink);
+    writeFileMock.mockClear();
+    renameMock.mockClear();
+    unlinkMock.mockClear();
+
+    const { zipPath } = await buildFixtureBackup();
+    await verifyBackupRestore(zipPath);
+
+    const disallowed = [DB_PATH, UPLOAD_DIR];
+    const touchesRealPath = (args: unknown[]) =>
+      disallowed.some((p) => typeof args[0] === "string" && args[0].startsWith(p));
+    for (const mockFn of [writeFileMock, renameMock, unlinkMock]) {
+      const offending = mockFn.mock.calls.filter(touchesRealPath);
+      expect(offending).toEqual([]);
+    }
   });
 });

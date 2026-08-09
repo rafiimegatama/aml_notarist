@@ -5,6 +5,7 @@ import { getAiSettings, getAiSettingsPublic, updateAiSettings, type AiSettingsPu
 import { getProvider } from "@/lib/ai/provider-factory";
 import { OllamaProvider } from "@/lib/ai/providers/ollama-provider";
 import type { AiCapability, AiMode, OllamaModelInfo, ProviderHealth, ProviderId } from "@/lib/ai/provider";
+import { toSafeErrorMessage } from "@/lib/safeError";
 
 const SETTINGS_PATH = "/admin/ai-processing";
 
@@ -29,7 +30,8 @@ export async function updateAiSettingsAction(input: {
     revalidatePath(SETTINGS_PATH);
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Gagal menyimpan pengaturan AI." };
+    console.error("Simpan pengaturan AI gagal:", err);
+    return { success: false, error: toSafeErrorMessage(err, "Gagal menyimpan pengaturan AI.") };
   }
 }
 
@@ -58,7 +60,8 @@ export async function listOllamaModelsAction(): Promise<ListOllamaModelsResult> 
     const models = await provider.listModels();
     return { success: true, models };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Gagal memuat daftar model Ollama." };
+    console.error("Muat daftar model Ollama gagal:", err);
+    return { success: false, error: toSafeErrorMessage(err, "Gagal memuat daftar model Ollama.") };
   }
 }
 
@@ -72,7 +75,8 @@ export async function deleteOllamaModelAction(model: string): Promise<DeleteOlla
     revalidatePath(SETTINGS_PATH);
     return { success: true };
   } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : "Gagal menghapus model." };
+    console.error("Hapus model Ollama gagal:", err);
+    return { success: false, error: toSafeErrorMessage(err, "Gagal menghapus model.") };
   }
 }
 

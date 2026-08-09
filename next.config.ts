@@ -29,7 +29,25 @@ const CONTENT_SECURITY_POLICY = [
   "base-uri 'self'",
 ].join("; ");
 
+// Strict-Transport-Security cuma aman diaktifkan kalau deployment ini
+// SUNGGUHAN diakses lewat HTTPS (reverse proxy Caddy, lihat
+// docs/intranet-deployment-id.md) — sinyal yang sama persis dipakai
+// isSecureDeployment() (lib/auth.ts) untuk Secure cookie flag. Kalau
+// dipaksa aktif untuk deployment http://127.0.0.1 default, browser akan
+// mengingat kebijakan "hanya HTTPS" untuk host itu dan MENGUNCI akses lokal
+// yang justru tidak pernah punya sertifikat — jadi harus tetap kondisional,
+// bukan selalu aktif.
+const isHttpsDeployment = process.env.APP_BASE_URL?.startsWith("https://") ?? false;
+
 const nextConfig: NextConfig = {
+  // unzipper's optional S3 support does a dynamic require('@aws-sdk/client-s3')
+  // that Turbopack tries to statically resolve during the server bundle
+  // build (now that lib/backupArchive.ts's restore-verification code is
+  // reachable from a real route, not just test files) — we only ever call
+  // unzipper.Open.file() for local paths, never the S3 source, so excluding
+  // it from bundling (require it from node_modules at runtime instead) is
+  // the standard fix, not a workaround masking a real bug.
+  serverExternalPackages: ["unzipper"],
   async headers() {
     return [
       {
@@ -42,6 +60,9 @@ const nextConfig: NextConfig = {
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
           { key: "X-DNS-Prefetch-Control", value: "off" },
           { key: "Content-Security-Policy", value: CONTENT_SECURITY_POLICY },
+          ...(isHttpsDeployment
+            ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]
+            : []),
         ],
       },
     ];

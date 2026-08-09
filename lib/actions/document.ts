@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
@@ -11,13 +10,9 @@ import { UPLOAD_DIR } from "@/lib/storage";
 import { decryptJsonField, decryptString, encryptDocumentBuffer, encryptJson, encryptString } from "@/lib/documentEncryption";
 import { backupDocumentToDrive } from "@/lib/actions/driveBackup";
 import { matchesFileSignature } from "@/lib/fileSignature";
+import { generateStoredFilename } from "@/lib/uploadSafety";
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB — cukup untuk foto kamera HP resolusi tinggi
-const ALLOWED_MIME: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
 
 export type UploadOcrResult =
   | {
@@ -36,8 +31,8 @@ export async function uploadAndExtractDocument(
   if (!(file instanceof File) || file.size === 0) {
     return { success: false, error: "Pilih file foto/scan terlebih dahulu." };
   }
-  const ext = ALLOWED_MIME[file.type];
-  if (!ext) {
+  const storedName = generateStoredFilename(file.type);
+  if (!storedName) {
     return { success: false, error: "Format file harus JPG, PNG, atau WEBP." };
   }
   if (file.size > MAX_FILE_SIZE) {
@@ -50,7 +45,6 @@ export async function uploadAndExtractDocument(
   }
 
   await mkdir(UPLOAD_DIR, { recursive: true });
-  const storedName = `${randomUUID()}.${ext}`;
 
   let rawText = "";
   let words: Awaited<ReturnType<typeof extractTextFromImage>>["words"] = [];

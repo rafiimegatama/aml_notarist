@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/guard-not-production.js",
     "dev": "next dev -H 127.0.0.1 -p 4001",
+    "predev:lan": "node scripts/guard-not-production.js",
     "dev:lan": "next dev -H 0.0.0.0 -p 4001",
     "build": "next build",
     "start": "next start -H 127.0.0.1 -p 4001",
@@ -11,6 +13,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "sync:sheets": "tsx -r dotenv/config scripts/sync-google-sheets.ts dotenv_config_path=.env",
+    "security:migrate-encryption": "tsx -r dotenv/config scripts/migrate-encryption.ts dotenv_config_path=.env",
     "up": "next build && pm2 startOrReload ecosystem.config.js",
     "down": "pm2 stop notary-aml",
     "restart": "pm2 restart notary-aml",
@@ -27,13 +30,14 @@
     "framer-motion": "^13.0.0",
     "google-auth-library": "^11.0.0",
     "lucide-react": "^1.29.0",
-    "next": "16.2.12",
+    "next": "16.3.0",
     "prisma": "^7.9.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.83.0",
     "recharts": "^3.10.1",
     "tesseract.js": "^7.0.0",
+    "unzipper": "^0.12.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -45,12 +49,11 @@
     "@types/unzipper": "^0.10.11",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.0",
     "pm2": "^5.4.3",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
     "typescript": "^5",
-    "unzipper": "^0.12.5",
     "vitest": "^4.1.10"
   }
 }

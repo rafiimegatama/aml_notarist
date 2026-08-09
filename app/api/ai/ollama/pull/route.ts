@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getAiSettings } from "@/lib/ai/config";
 import { OllamaProvider } from "@/lib/ai/providers/ollama-provider";
+import { toSafeErrorMessage } from "@/lib/safeError";
 
 // Sudah tercakup PIN gate lewat matcher default proxy.ts (tidak dikecualikan).
 // Route Handler (bukan Server Action) dipakai khusus di sini karena progress
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
           controller.enqueue(encoder.encode(JSON.stringify(progress) + "\n"));
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Gagal mengunduh model.";
+        console.error("Ollama pull model gagal:", err);
+        const message = toSafeErrorMessage(err, "Gagal mengunduh model.");
         controller.enqueue(encoder.encode(JSON.stringify({ status: "error", error: message }) + "\n"));
       } finally {
         controller.close();

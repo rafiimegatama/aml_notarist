@@ -3,6 +3,9 @@
 // proxy.ts) — sinkronisasi HDD pakai fs, jadi hanya jalan di runtime Node.js.
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { assertEncryptionKeyConfiguration } = await import("@/lib/encryptionKeyGuard");
+    assertEncryptionKeyConfiguration();
+
     const { syncToExternalDrive } = await import("@/lib/hddSync");
     await syncToExternalDrive();
   }

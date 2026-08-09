@@ -191,11 +191,16 @@ yang tunduk pada UU No. 27/2022 (UU PDP) — Pasal 39 ayat (1) mewajibkan
    (Phase 3).** File scan dienkripsi AES-256-GCM saat ditulis di
    `uploadAndExtractDocument` (`lib/actions/document.ts`) dan didekripsi saat
    dibaca di `app/api/documents/[id]/route.ts` dan `backupDocumentToDrive`
-   (`lib/actions/driveBackup.ts`). Kunci diturunkan dari `SESSION_SECRET`
-   (lihat `lib/documentEncryption.ts`) — TIDAK ada env var baru, dan kunci
-   TIDAK pernah tersimpan di dalam `dev.db`. OCR (Tesseract) dijalankan di
+   (`lib/actions/driveBackup.ts`). OCR (Tesseract) dijalankan di
    memori dari buffer sebelum dienkripsi, jadi plaintext gambar tidak pernah
    ditulis ke disk sama sekali, bahkan sementara.
+   > **UPDATE (security hardening pass):** kunci enkripsi TIDAK LAGI
+   > diturunkan dari `SESSION_SECRET` — lihat **[SECURITY.md](SECURITY.md)**
+   > bagian "Arsitektur Enkripsi" untuk model kunci terpisah
+   > (`DATA_ENCRYPTION_KEY`/`DOCUMENT_ENCRYPTION_KEY`) dan prosedur migrasi
+   > (`npm run security:migrate-encryption`). Paragraf di bawah ini
+   > menjelaskan model LAMA (v1) — dipertahankan sebagai catatan sejarah,
+   > data v1 tetap terbaca otomatis tanpa migrasi.
    - **Residual risk — JANGAN dianggap solusi penuh:** di aplikasi satu-PC
      seperti ini, kunci enkripsi (`SESSION_SECRET` di `.env`) tetap hidup di
      disk yang sama dengan data terenkripsi. Ini menaikkan standar terhadap
@@ -232,6 +237,33 @@ yang tunduk pada UU No. 27/2022 (UU PDP) — Pasal 39 ayat (1) mewajibkan
 Sumber: PRD-Notary-CDD-Phase2-Improvements.md Bagian 4 (FR-5) & Lampiran B —
 ini komentar sekunder atas regulasi, bukan teks primer; verifikasi ke sumber
 primer/penasihat hukum sebelum dijadikan kebijakan final.
+
+### Kunci Enkripsi Terpisah & Migrasi (security hardening pass)
+
+Ringkas — detail lengkap ada di **[SECURITY.md](SECURITY.md)**:
+
+1. Generate dua kunci baru:
+   ```
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   (jalankan dua kali, satu untuk `DATA_ENCRYPTION_KEY`, satu untuk
+   `DOCUMENT_ENCRYPTION_KEY`).
+2. Isi keduanya di `.env` (HARUS keduanya, tidak boleh cuma satu — aplikasi
+   menolak start kalau cuma salah satu terisi).
+3. Backup nilai kedua kunci ini di tempat terpisah dari server (password
+   manager kantor, dsb.) — **kalau hilang, data yang sudah dimigrasikan
+   TIDAK BISA dipulihkan siapa pun.**
+4. Jalankan migrasi:
+   ```
+   npm run security:migrate-encryption
+   ```
+   Aman dijalankan kapan saja setelah langkah 2 — idempotent, tidak
+   menyentuh data yang gagal dimigrasi (dibiarkan format lama, tetap
+   terbaca), melaporkan ringkasan jumlah berhasil/gagal di akhir.
+
+Mengosongkan kedua env var ini (default sebelum langkah di atas dilakukan)
+membuat aplikasi tetap berjalan seperti sebelumnya (skema lama,
+`SESSION_SECRET`) — TIDAK WAJIB langsung dikerjakan, tapi direkomendasikan.
 
 ## AI Processing Engine (provider-agnostic)
 

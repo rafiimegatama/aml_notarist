@@ -29,3 +29,14 @@ export const HERO_DIR = path.join(process.cwd(), "storage", "hero");
 // File-based (bukan tabel DB) supaya tamper-resistance lebih baik dan
 // tidak terkena cascade delete kalau tabel Customer dihapus.
 export const SECURITY_LOG_PATH = path.join(process.cwd(), "storage", "security.log");
+
+// Ditulis oleh scripts/migrate-encryption.ts setelah migrasi kunci enkripsi
+// (SESSION_SECRET -> DATA_ENCRYPTION_KEY/DOCUMENT_ENCRYPTION_KEY) selesai
+// dijalankan minimal sekali. Dibaca saat boot (lib/encryptionKeyGuard.ts)
+// untuk fail-closed kalau kunci baru sudah pernah dipakai tapi env var-nya
+// hilang saat restart berikutnya.
+export const ENCRYPTION_MIGRATION_STATUS_PATH = path.join(
+  process.cwd(),
+  "storage",
+  "encryption-migration-status.json"
+);

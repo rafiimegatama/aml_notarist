@@ -11,6 +11,7 @@ export type SecurityEventType =
   | "SESSION_EXTENDED"
   | "PIN_RESET"
   | "BACKUP_CREATED"
+  | "BACKUP_VERIFIED"
   | "CUSTOMER_DELETED";
 
 export type SecurityEvent = {

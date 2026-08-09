@@ -1,8 +1,15 @@
 "use server";
 
-import { readFile } from "node:fs/promises";
-import { BACKUP_META_PATH } from "@/lib/storage";
-import { buildBackupZip, type BackupMeta, type CreateBackupResult } from "@/lib/backupArchive";
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { BACKUP_DIR, BACKUP_META_PATH } from "@/lib/storage";
+import {
+  buildBackupZip,
+  verifyBackupRestore,
+  type BackupMeta,
+  type CreateBackupResult,
+  type RestoreVerificationResult,
+} from "@/lib/backupArchive";
 import { logSecurityEvent } from "@/lib/securityLog";
 
 /**
@@ -32,4 +39,39 @@ export async function getLastBackupInfo(): Promise<BackupMeta | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Restores the most recent backup into an isolated temp directory and runs
+ * a real validation pass (SQLite integrity, Prisma read, sample document
+ * decrypt) — see verifyBackupRestore() for the full flow. Persists the
+ * result onto meta.json so the dashboard can show CREATED vs VERIFIED vs
+ * FAILED, and always logs the outcome (including FAILED — that is exactly
+ * the case an operator most needs to know about).
+ */
+export async function verifyLastBackup(): Promise<
+  RestoreVerificationResult | { status: "FAILED"; verifiedAt: string; checks: [{ name: "NO_BACKUP"; passed: false; detail: string }] }
+> {
+  const meta = await getLastBackupInfo();
+  if (!meta) {
+    return {
+      status: "FAILED",
+      verifiedAt: new Date().toISOString(),
+      checks: [{ name: "NO_BACKUP", passed: false, detail: "Belum ada backup untuk diverifikasi." }],
+    };
+  }
+
+  const zipPath = path.join(BACKUP_DIR, meta.fileName);
+  const result = await verifyBackupRestore(zipPath);
+
+  const updatedMeta: BackupMeta = {
+    ...meta,
+    restoreStatus: result.status,
+    restoreVerifiedAt: result.verifiedAt,
+    restoreChecks: result.checks,
+  };
+  await writeFile(BACKUP_META_PATH, JSON.stringify(updatedMeta), "utf-8");
+  void logSecurityEvent("BACKUP_VERIFIED", `${meta.fileName}:${result.status}`);
+
+  return result;
 }

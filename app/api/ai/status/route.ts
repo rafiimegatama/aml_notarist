@@ -1,4 +1,5 @@
 import { AIProcessingService } from "@/lib/ai/services/ai-processing";
+import { toSafeErrorMessage } from "@/lib/safeError";
 
 // Sudah tercakup PIN gate lewat matcher default proxy.ts. Dipanggil dari
 // client (bukan di-fetch saat SSR dashboard) supaya health-check provider
@@ -9,8 +10,9 @@ export async function GET() {
     const snapshot = await AIProcessingService.getHealthSnapshot();
     return Response.json(snapshot);
   } catch (err) {
+    console.error("AI health snapshot gagal:", err);
     return Response.json(
-      { mode: "local", providers: [], error: err instanceof Error ? err.message : "Gagal memuat status AI." },
+      { mode: "local", providers: [], error: toSafeErrorMessage(err, "Gagal memuat status AI.") },
       { status: 200 }
     );
   }
