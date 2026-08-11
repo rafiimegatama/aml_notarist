@@ -29,3 +29,12 @@ output "next_steps" {
        rm ./sa-key.json
   EOT
 }
+
+output "cloud_run_prep_status" {
+  description = "Status persiapan Cloud Run — lihat cloud_run.tf untuk syarat sebelum diaktifkan."
+  value = var.enable_cloud_run_prep ? (
+    "AKTIF (prep only): service '${var.cloud_run_service_name}' di region ${var.region} pakai image placeholder '${var.container_image}'. Ini BUKAN deployment app notary yang siap dipakai notaris sungguhan — lihat komentar di cloud_run.tf (SQLite/local-storage/auth belum di-rework untuk lingkungan stateless)."
+    ) : (
+    "NONAKTIF (default). Set enable_cloud_run_prep=true di terraform.tfvars untuk membuat Artifact Registry + service Cloud Run kosong (placeholder image, bukan app ini)."
+  )
+}

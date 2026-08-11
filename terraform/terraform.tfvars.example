@@ -1,7 +1,27 @@
 # Salin ke terraform.tfvars (di-gitignore) lalu sesuaikan kalau perlu.
-# Semua field ini punya default yang sama di variables.tf, jadi file ini
-# opsional kecuali kamu ingin override.
+#
+# PENTING (security hardening pass, cross-install isolation): nilai di bawah
+# ini HARUS diisi milik instalasi/klien Anda sendiri — JANGAN salin nilai
+# apa pun dari variables.tf apa adanya. variables.tf punya default yang
+# menunjuk ke satu project/spreadsheet acuan yang SUDAH terprovisioning
+# nyata (dipakai untuk instalasi referensi aplikasi ini) — memakainya
+# untuk instalasi/klien BARU berarti berbagi Service Account & Spreadsheet
+# yang sama dengan instalasi lain, melanggar isolasi antar-klien. Setiap
+# kantor notaris/instalasi WAJIB punya project GCP, Service Account, dan
+# Spreadsheet sendiri-sendiri — lihat docs/google-workspace-security.md.
 
-project_id         = "project-bead1995-1df2-4fdd-8ec"
-service_account_id = "notary-cdd-sync"
-spreadsheet_id      = "1WkQ_UhutY0cS4CTB7E_84bn9b7UxFg-uF3JhR_VQdTg"
+project_id         = "your-gcp-project-id"
+service_account_id = "your-service-account-id"
+spreadsheet_id      = "your-google-sheets-spreadsheet-id"
+
+# --- Persiapan Cloud Run (opsional, default nonaktif) ---
+# Baca komentar di cloud_run.tf dulu sebelum enable_cloud_run_prep=true —
+# ini cuma scaffolding (Artifact Registry + service kosong image placeholder),
+# BUKAN deployment app notary_aml yang siap dipakai. SQLite lokal, upload
+# disk lokal, dan auth PIN-tunggal app ini belum di-rework untuk Cloud Run.
+# enable_cloud_run_prep      = true
+# region                     = "asia-southeast2"
+# artifact_repository_id     = "notary-aml-images"
+# cloud_run_service_name     = "notary-aml-web"
+# container_image            = "us-docker.pkg.dev/cloudrun/container/hello"
+# cloud_run_allow_unauthenticated = false
